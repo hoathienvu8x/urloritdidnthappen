@@ -60,7 +60,7 @@ class RequestHandler(webapp.RequestHandler):
     server_software = os.getenv('SERVER_SOFTWARE')
     if server_software and 'Dev' in server_software:
       current_version_id = str(datetime.datetime.now())
-      is_production = False
+      is_production = True
     template_vars['is_production'] = is_production
     template_vars['current_version_id'] = current_version_id
     template_vars['login_url'] = users.create_login_url('/')
