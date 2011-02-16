@@ -2,6 +2,8 @@
 
 {% block head %}
 <link rel="stylesheet" href="/static/editor.css">
+<link id="bespin_base" href="/static/bespin-embedded">
+<script src="/static/bespin-embedded/BespinEmbedded.js"></script>
 {% endblock %}
 
 {% block body %}
@@ -23,7 +25,8 @@
   </div>
   <div class="editor-content">
     <div class="editor-pane editor-pane-left">
-      <textarea class="editor-doc"></textarea>
+      <!-- <textarea class="editor-doc"></textarea> -->
+      <div class="editor-bespin" data-bespinoptions='{ "stealFocus": false, "syntax": "html" }'></div>
     </div>
     <div class="editor-pane editor-pane-right" style="position: absolute;">
       <iframe class="editor-preview"></iframe>
