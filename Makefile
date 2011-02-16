@@ -9,8 +9,8 @@ clean: clean-compiler
 
 editor:
 	$(CALC_DEPS) -p $(CLOSURE_LIBRARY) \
-			-i static/require.js -i static/editor.js -o script | \
-			java -jar $(CLOSURE_COMPILER_JAR) \
+			-i static/editor.js -o script \
+			| java -jar $(CLOSURE_COMPILER_JAR) \
 			--compilation_level=ADVANCED_OPTIMIZATIONS \
 			--js_output_file static/editor.prod.js
 
