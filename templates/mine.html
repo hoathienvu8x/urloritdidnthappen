@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+
+{% block body %}
+
+
+<h2>Prototypes for {{ user }}</h2>
+
+{% if prototypes %}
+  <ol>
+    {% for prototype in prototypes %}
+      <li>
+        <div>
+          <a href="/{{ prototype.key}}">{% spaceless %}
+            <strong>
+            {% if prototype.name %}
+              {{ prototype.name }}
+            {% else %}
+              {{ prototype.key }}
+            {% endif %}
+            </strong>
+          {% endspaceless %}</a>
+        </div>
+        <small>
+          <div>created: {{ prototype.created }}</div>
+          <div>modified {{ prototype.modified }}</div>
+        </small>
+      </li>
+    {% endfor %}
+  </ol>
+{% else %}
+  <img src="https://memegen.googleplex.com/memeimage?k=640184">
+  <h2><a href="/">Go create one!</a></h2>
+{% endif %}
+
+{% endblock %}
