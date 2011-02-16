@@ -1,0 +1,148 @@
+/**
+ * Stylesheet for the editor.
+ *
+ * Author: ccalo@google.com (Chris Calo)
+ */
+
+html {
+  font-family: Arial, sans-serif;
+  font-size: 0.8125em;
+  line-height: 1.230769em; /* 16px */
+}
+
+body,
+form {
+  margin: 0;
+  padding: 0;
+}
+
+ol, ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.editor-chrome {
+  -webkit-box-orient: vertical;
+  display: -webkit-box;
+  bottom: 0;
+  left: 0;
+  position: fixed;
+  right: 0;
+  top: 0;
+}
+
+.editor-chrome-header {
+  -webkit-box-flex: 0;
+  background: #999;
+  color: #fff;
+  font-weight: bold;
+  padding: 0.25em 0.5em;
+}
+
+.editor-chrome-header-links {
+  float: right;
+  white-space: nowrap;
+  width: 50%;
+  text-align: right;
+}
+
+.editor-chrome-header-links form {
+  display: inline-block;
+}
+
+.editor-content {
+  -webkit-box-flex: 1;
+  position: relative;
+}
+
+.editor-doc {
+  -webkit-box-sizing: border-box;
+  background: transparent;
+  background: rgba(255, 255, 100, .05);
+  border: 0;
+  border-right: solid 1px #ccc;
+  bottom: 0;
+  display: block;
+  font-family: Consolas, monospace;
+  font-size: 1em;
+  height: 100%;
+  line-height: 1.3em;
+  margin: 0;
+  outline: none;
+  padding: 0;
+  resize: none;
+  width: 100%;
+}
+
+.editor-preview {
+  -webkit-box-flex: 1;
+  -webkit-box-sizing: border-box;
+  border: 0;
+  bottom: 0;
+  height: 100%;
+  left: 0;
+  right: 0;
+  top: 0;
+  width: 100%;
+}
+
+.editor-preview-button {
+  background: #eee;
+  border: solid 1px #ccc;
+  border-radius: 3px;
+  font-family: Arial, sans-serif;
+  font-size: 120%;
+  padding: 0.25em 0.5em;
+  position: absolute;
+  right: 0;
+  top: 0;
+}
+
+.editor-preview-button:hover {
+  border-color: #aaa;
+}
+
+.editor-pane {
+  bottom: 0;
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+}
+
+.editor-pane-left {
+  right: 50%;
+}
+
+.editor-pane-right {
+  left: 50%;
+}
+
+.editor-pane-top {
+  top: 0;
+}
+
+.editor-deco {
+  bottom: 0;
+  left: 0;
+  line-height: 1.3em;
+  list-style: none;
+  margin: 0;
+  overflow: hidden;
+  padding: 0;
+  position: absolute;
+  right: 0;
+  top: 0;
+}
+
+.editor-deco-line {
+  height: 1.3em;
+}
+
+.editor-deco-line-on {
+  background: #ffe;
+  border-top: solid 1px #eee;
+  border-bottom: solid 1px #eee;
+  margin: -1px 0;
+}
