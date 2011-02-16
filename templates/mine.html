@@ -2,8 +2,7 @@
 
 {% block body %}
 
-
-<h2>Prototypes for {{ user }}</h2>
+<h2>Prototypes by {{ user }}</h2>
 
 {% if prototypes %}
   <ol>
@@ -21,7 +20,7 @@
           {% endspaceless %}</a>
         </div>
         <small>
-          <div>created: {{ prototype.created }}</div>
+          <div>created {{ prototype.created }}</div>
           <div>modified {{ prototype.modified }}</div>
         </small>
       </li>
@@ -29,7 +28,6 @@
   </ol>
 {% else %}
   <img src="https://memegen.googleplex.com/memeimage?k=640184">
-  <h2><a href="/">Go create one!</a></h2>
 {% endif %}
 
 {% endblock %}
