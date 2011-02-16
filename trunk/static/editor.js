@@ -33,21 +33,22 @@ ccalo.editor.init = function () {
   var previewElement = goog.dom.getElementsByClass("editor-preview")[0];
   var editorElement = goog.dom.getElementsByClass("editor-doc")[0];
 
-  this.preview = new ccalo.editor.Preview(previewElement);
-  this.editor = new ccalo.editor.Editor(editorElement);
+  ccalo.editor.preview = new ccalo.editor.Preview(previewElement);
+  ccalo.editor.editor = new ccalo.editor.Editor(editorElement);
 
   // TODO(ccalo): publish a change event on ccalo.editor.Editor
-  goog.events.listen(this.editor.getElement(), "keyup", this.handleKeyUp, false, this);
+  goog.events.listen(ccalo.editor.editor.getElement(), "keyup",
+      ccalo.editor.handleKeyUp, false, ccalo.editor);
 
-  this.editor.saveContent_ = document.getElementById('save-content');
-  this.saveContentForm_ = document.getElementById('save-content-form');
-  this.saveContentBtn_ = document.getElementById('save-content-btn');
-  goog.events.listen(this.saveContentBtn_, "click", this.handleSaveContent_,
-      false, this);
-  this.editor.setText(this.editor.saveContent_.value);
-  this.editor.saveState();
-  this.updatePreview();
-  //this.loadDoc();
+  ccalo.editor.editor.saveContent_ = document.getElementById('save-content');
+  ccalo.editor.saveContentForm_ = document.getElementById('save-content-form');
+  ccalo.editor.saveContentBtn_ = document.getElementById('save-content-btn');
+  goog.events.listen(ccalo.editor.saveContentBtn_, "click",
+      ccalo.editor.handleSaveContent_, false, ccalo.editor);
+  ccalo.editor.editor.setText(ccalo.editor.editor.saveContent_.value);
+  ccalo.editor.editor.saveState();
+  ccalo.editor.updatePreview();
+  //ccalo.editor.loadDoc();
 };
 
 ccalo.editor.handleSaveContent_ = function(e) {
