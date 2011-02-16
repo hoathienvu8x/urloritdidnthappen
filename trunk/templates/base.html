@@ -7,10 +7,31 @@
     <!--<link rel="shortcut icon" href="/favicon.ico">
     <link rel="apple-touch-icon" href="/apple-touch-icon.png">-->
     <title>{{ title }}</title>
-    {% block head %}{% endblock %}
+    <link rel="stylesheet" href="/static/editor.css">
   </head>
-  <body>
-    {% block body %}{% endblock %}
+  <body {% if pagename %}class="{{ pagename }}-body"{% endif %}>
+
+    <div class="editor-chrome">
+      <div class="editor-chrome-header">
+        <h1>
+          <a href="/">URL or it didn't happen</a>
+        </h1>
+        <div class="editor-chrome-header-links">
+
+          <form method="post" action="/save/{{ key }}" id="save-content-form">
+            <textarea id="save-content" name="content"
+              style="display:none">{{ content }}</textarea>
+            <input id="save-content-btn" type="submit" value="save">
+          </form>
+
+          <a href="/mine">{{ user }}</a>
+        </div>
+      </div>
+      {% if pagename %}<div class="{{ pagename }}-content">{% endif %}
+      {% block body %}{% endblock %}
+      {% if pagename %}</div>{% endif %}
+    </div>
+
 
     <!--
     <script>
