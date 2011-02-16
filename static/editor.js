@@ -27,23 +27,26 @@ ccalo.editor.init = function () {
   // TODO(ccalo): publish a change event on ccalo.editor.Editor
   goog.events.listen(this.editor.getElement(), "keyup", this.handleKeyUp, false, this);
 
-  this.saveContent_ = document.getElementById('save-content');
+  this.editor.saveContent_ = document.getElementById('save-content');
   this.saveContentForm_ = document.getElementById('save-content-form');
-  this.saveContentKey_ = document.getElementById('save-content-key');
   this.saveContentBtn_ = document.getElementById('save-content-btn');
   goog.events.listen(this.saveContentBtn_, "click", this.handleSaveContent_,
       false, this);
-  this.editor.setText(this.saveContent_.value);
+  this.editor.setText(this.editor.saveContent_.value);
   this.editor.saveState();
+  this.updatePreview();
   //this.loadDoc();
 };
 
 ccalo.editor.handleSaveContent_ = function(e) {
+  this.saveContentForm_.submit();
+  /*
   if (this.saveContentKey_.value) {
     // XHR POST
   } else {
     this.saveContentForm_.submit();
   }
+  */
 };
 
 ccalo.editor.loadDoc = function () {
@@ -189,7 +192,7 @@ ccalo.editor.Editor.prototype.getLineFromPosition = function (position) {
 
 ccalo.editor.Editor.prototype.getCurrentState = function () {
   var content = this.getText();
-  document.getElementById('save-content').value = content;  // elsigh
+  this.saveContent_.value = content;  // elsigh
   var selectionStart = this.getSelectionStart();
   var selectionEnd = this.getSelectionEnd();
   return new ccalo.editor.State(content, selectionStart, selectionEnd);
