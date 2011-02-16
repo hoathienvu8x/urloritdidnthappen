@@ -72,24 +72,21 @@ class EditorHandler(RequestHandler):
   def get(self):
     user = users.get_current_user()
     url = self.request.get('url')
-    key = self.request.get('k')
+    key = None
 
-    if key:
-      prototype = db.get(db.Key.from_path('Prototype', int(key)))
-      content = prototype.content
-      if prototype.user != user:
-        key = ''  # unsets the key so that any save action creates a new entity.
-    elif url:
+    if url:
       result = urlfetch.fetch(url)
       if result.status_code != 200:
         self.error(503)
-        return self.response.out.write(
-            'Unable to urlfetch template_url: %s.' % url)
+        return self.response.out.write('Unable to urlfetch url: %s.' % url)
       content = result.content
     else:
       try:
         key = int(self.request.path[1:])
         prototype = db.get(db.Key.from_path('Prototype', int(key)))
+        if prototype.user != user:
+          # unsets the key so that any save action creates a new entity.
+          key = ''
         content = prototype.content
       except ValueError:
         content = ''
@@ -104,9 +101,16 @@ class EditorHandler(RequestHandler):
 
 class SaveHandler(RequestHandler):
   def post(self):
+    try:
+      # 6 here is the len('/save/')
+      key = int(self.request.path[6:])
+    except:
+      key = None
+
     user = users.get_current_user()
-    key = self.request.get('key')
     content = self.request.get('content')
+
+    logging.info('key: %s, content: %s' % (key, content))
 
     if user is None:
       self.error(503)
@@ -116,10 +120,11 @@ class SaveHandler(RequestHandler):
       return self.response.out.write('Cowardly refusal to save any content.')
 
     if key:
-      prototype = db.get(db.Key.from_path('Prototype', int(key)))
+      prototype = db.get(db.Key.from_path('Prototype', key))
       if prototype.user != user:
         self.error(503)
         return self.response.out.write('You do not own this prototype.')
+      prototype.content = content
     else:
       prototype = Prototype(content=content, user=user)
     prototype.put()
@@ -131,20 +136,24 @@ class SaveHandler(RequestHandler):
 class RenderHandler(RequestHandler):
   @login_required
   def get(self):
+    try:
+      # 8 here is the len('/render/')
+      key = int(self.request.path[8:])
+    except:
+      self.error(404)
+      return self.response.out.write('No prototype for your key')
     user = users.get_current_user()
-    key = self.request.get('k')
-    prototype = db.get(db.Key.from_path('Prototype', int(key)))
+    prototype = db.get(db.Key.from_path('Prototype', key))
     if not prototype:
       self.error(404)
-      return self.response.out.write('No prototype exists with k=%s' % key)
+      return self.response.out.write('No prototype exists with key: %s' % key)
     self.response.out.write(prototype.content)
 
 
 def main():
   application = webapp.WSGIApplication(
-                                       [(r'/save', SaveHandler),
-                                        (r'/editor', EditorHandler),
-                                        (r'/render', RenderHandler),
+                                       [(r'/save/.*', SaveHandler),
+                                        (r'/render/.*', RenderHandler),
                                         (r'/.*', EditorHandler),],
                                        debug=True)
   wsgiref.handlers.CGIHandler().run(application)
