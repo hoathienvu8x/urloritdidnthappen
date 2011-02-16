@@ -31,14 +31,14 @@ ccalo.assert = function (object) {
  */
 ccalo.editor.init = function () {
   var previewElement = goog.dom.getElementsByClass("editor-preview")[0];
-  var editorElement = goog.dom.getElementsByClass("editor-doc")[0];
+  var editorElement = goog.dom.getElementsByClass("editor-bespin")[0];
 
   ccalo.editor.preview = new ccalo.editor.Preview(previewElement);
   ccalo.editor.editor = new ccalo.editor.Editor(editorElement);
 
   // TODO(ccalo): publish a change event on ccalo.editor.Editor
-  goog.events.listen(ccalo.editor.editor.getElement(), "keyup",
-      ccalo.editor.handleKeyUp, false, ccalo.editor);
+  // goog.events.listen(ccalo.editor.editor.getElement(), "keyup",
+  //     ccalo.editor.handleKeyUp, false, ccalo.editor);
 
   ccalo.editor.editor.saveContent_ = document.getElementById('save-content');
   ccalo.editor.saveContentForm_ = document.getElementById('save-content-form');
@@ -89,13 +89,13 @@ ccalo.editor.handleHtmlLoad = function (e) {
   this.updatePreview();
 };
 
-ccalo.editor.handleKeyUp = function (e) {
-  if (this.shouldSave) {
-    this.editor.saveState();
-  }
-  this.shouldSave = true;
-  this.updatePreview();
-};
+// ccalo.editor.handleKeyUp = function (e) {
+//   if (this.shouldSave) {
+//     this.editor.saveState();
+//   }
+//   this.shouldSave = true;
+//   this.updatePreview();
+// };
 
 
 /**
@@ -123,12 +123,27 @@ ccalo.editor.Preview.prototype.setContent = function (content) {
  * An HTML editor. Just a wrapper around a <textarea/>.
  */
 ccalo.editor.Editor = function (element) {
-  ccalo.assert(element.tagName.toLowerCase() == "textarea")
-  this.element_ = element;
-  this.history = new ccalo.editor.History();
-  this.keyHandler_ = new goog.events.KeyHandler(element);
+  var editor_ = this;
+  bespin.useBespin(element).then(function(env) {
+    // Get the editor.
+    editor_.bespin_ = env.editor;
+    editor_.bespin_.syntax = 'html';
+    editor_.bespin_.focus = true;
+    env.settings.tabsize = 2;
 
-  goog.events.listen(this.keyHandler_, "key", this.handleKey, false, this);
+    editor_.bespin_.textChanged.add(function() {
+        ccalo.editor.updatePreview();
+      });
+  }, function(error) {
+    throw new Error("Launch failed: " + error);
+  });
+
+  // ccalo.assert(element.tagName.toLowerCase() == "textarea")
+  // this.element_ = element;
+  // this.history = new ccalo.editor.History();
+  // this.keyHandler_ = new goog.events.KeyHandler(element);
+  //
+  // goog.events.listen(this.keyHandler_, "key", this.handleKey, false, this);
 };
 
 /**
@@ -143,18 +158,19 @@ ccalo.editor.Editor.WhiteSpace = {
 };
 
 ccalo.editor.Editor.prototype.getElement = function () {
+  throw new Error("Editor.getElement() not implemented.");
   return this.element_;
 };
 
 ccalo.editor.Editor.prototype.getText = function () {
-  return this.element_.value;
+  return this.bespin_.value;
 };
 
 /**
  * Sets the text and wipes the current selection range.
  */
 ccalo.editor.Editor.prototype.setText = function (text) {
-  this.element_.value = text;
+  this.bespin_.value = text;
 };
 
 ccalo.editor.Editor.prototype.loadFromUrl = function (url, callback) {
@@ -538,4 +554,6 @@ ccalo.editor.State.prototype.getSelectionEnd = function () {
   return this.selectionEnd_;
 };
 
-ccalo.editor.init();
+window.onBespinLoad = function() {
+  ccalo.editor.init();
+}
