@@ -56,9 +56,12 @@ class RequestHandler(webapp.RequestHandler):
       Writes the rendered template to response.out.
     """
     current_version_id = os.environ['CURRENT_VERSION_ID']
+    is_production = True
     server_software = os.getenv('SERVER_SOFTWARE')
     if server_software and 'Dev' in server_software:
       current_version_id = str(datetime.datetime.now())
+      is_production = False
+    template_vars['is_production'] = is_production
     template_vars['current_version_id'] = current_version_id
     template_vars['login_url'] = users.create_login_url('/')
     template_vars['logout_url'] = users.create_logout_url('/')

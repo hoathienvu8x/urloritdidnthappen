@@ -7,6 +7,18 @@
 goog.provide("ccalo");
 goog.provide("ccalo.editor");
 
+goog.require("goog.array");
+goog.require("goog.dom");
+goog.require("goog.dom.classes");
+goog.require("goog.dom.selection");
+goog.require("goog.events");
+goog.require("goog.events.KeyCodes");
+goog.require("goog.events.KeyHandler");
+goog.require("goog.net.XhrIo");
+goog.require("goog.style");
+goog.require("goog.Uri");
+goog.require("goog.Uri.QueryData");
+
 ccalo.assert = function (object) {
   if (!object) {
     throw "Assertion failed: " + object;
