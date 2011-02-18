@@ -1,16 +1,20 @@
 {% extends "base.html" %}
 
 {% block head %}
-<link id="bespin_base" href="/static/bespin-embedded">
-<script src="/static/bespin-embedded/BespinEmbedded.uncompressed.js"></script>
+  <link rel="stylesheet" href="/static/editor.css">
+  <link id="bespin_base" href="/static/bespin-embedded">
+  {% if is_production %}
+    <script src="/static/bespin-embedded/BespinEmbedded.js"></script>
+  {% else %}
+    <script src="/static/bespin-embedded/BespinEmbedded.uncompressed.js"></script>
+  {% endif %}
 {% endblock %}
 
 {% block body %}
 
 <div class="editor-content">
   <div class="editor-pane editor-pane-left">
-    <!-- <textarea class="editor-doc"></textarea> -->
-    <div class="editor-bespin" data-bespinoptions='{ "stealFocus": false, "syntax": "html" }'></div>
+    <textarea class="editor-bespin"></textarea>
   </div>
   <div class="editor-pane editor-pane-right" style="position: absolute;">
     <iframe class="editor-preview"></iframe>
@@ -33,6 +37,7 @@
     goog.require("goog.style");
     goog.require("goog.Uri");
     goog.require("goog.Uri.QueryData");
+    goog.require("goog.dom.ViewportSizeMonitor");
   </script>
   <script src="/static/editor.js"></script>
 {% endif %}
