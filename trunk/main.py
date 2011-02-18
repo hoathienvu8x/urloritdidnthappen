@@ -34,7 +34,20 @@ from google.appengine.ext.webapp.util import login_required
 
 from django.utils import simplejson
 
-
+SAMPLE_TEMPLATES = [
+  {
+    'name': 'default',
+    'url': '/static/templates/default.html'
+  },
+  {
+    'name': 'html5boilerplate',
+    'url': '/static/templates/html5boilerplate.html'
+  },
+  {
+    'name': 'centering',
+    'url': '/static/templates/centering.html'
+  }
+]
 
 #### DB MODELS ####
 class Prototype(db.Model):
@@ -110,7 +123,8 @@ class EditorHandler(RequestHandler):
     template_vars = {
       'key': key,
       'url': url,
-      'content': content
+      'content': content,
+      'sample_templates': SAMPLE_TEMPLATES
     }
     self.RenderTemplateOut('editor.html', template_vars)
 

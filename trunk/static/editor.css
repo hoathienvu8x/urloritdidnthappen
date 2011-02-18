@@ -42,7 +42,7 @@ a:hover {
 }
 
 .editor-chrome-header {
-  overflow: auto;
+  overflow: hidden;
   -webkit-box-flex: 0;
   background: #999;
   color: #fff;
@@ -68,7 +68,7 @@ a:hover {
 .editor-chrome-header-links {
   float: right;
   white-space: nowrap;
-  width: 50%;
+  xwidth: 50%;
   text-align: right;
 }
 
@@ -177,6 +177,12 @@ a:hover {
   margin: -1px 0;
 }
 
+#editor-load-template {
+  margin-left: 8px;
+  position: absolute;
+  z-index: 9999;
+}
+
 .mine-body {
   background: #ccc;
 }
@@ -192,4 +198,35 @@ a:hover {
 }
 .mine-content li {
   margin-bottom: 1.3em;
+}
+
+
+.menu-button {
+  margin: 0;
+}
+.menu-button-container {
+  display: inline;
+  position: relative;
+}
+
+.menu-button-container-on .menu-button-menu {
+  visibility: visible;
+}
+
+.menu-button-menu {
+  background: #eee;
+  color: #000;
+  border: solid 1px #ccc;
+  padding: 0;
+  position: absolute;
+  visibility: hidden;
+  width: 10em;
+}
+.menu-button-menu li {
+  margin: 0;
+  padding: 4px;
+}
+.menu-button-menu li:hover {
+  background: #ccc;
+  cursor: pointer;
 }

@@ -8,6 +8,7 @@
     <link rel="apple-touch-icon" href="/apple-touch-icon.png">-->
     <title>{{ title }}</title>
     <link rel="stylesheet" href="/static/editor.css">
+    {% block head %}{% endblock %}
   </head>
   <body {% if pagename %}class="{{ pagename }}-body"{% endif %}>
 
@@ -16,8 +17,22 @@
         <h1>
           <a href="/">URL or it didn't happen</a>
         </h1>
-        <div class="editor-chrome-header-links">
 
+        {% if sample_templates %}
+          <div id="editor-load-template" class="menu-button-container">
+            <button id="editor-load-template-btn"
+              class="menu-button">Templates</button>
+            <ul class="menu-button-menu">
+            {% for template in sample_templates %}
+              <li data-template-url="{{ template.url }}">
+                {{ template.name }}
+              </li>
+            {% endfor %}
+            </ul>
+          </div>
+        {% endif %}
+
+        <div class="editor-chrome-header-links">
           <form method="post" action="/save/{{ key }}" id="save-content-form">
             <textarea id="save-content" name="content"
               style="display:none">{{ content }}</textarea>
