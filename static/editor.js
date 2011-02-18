@@ -42,6 +42,32 @@ ccalo.editor.init = function () {
   ccalo.editor.saveContentBtn_ = document.getElementById('save-content-btn');
   goog.events.listen(ccalo.editor.saveContentBtn_, "click",
       ccalo.editor.handleSaveContent_, false, ccalo.editor);
+
+  ccalo.editor.menuButtonInit_();
+};
+
+ccalo.editor.menuButtonInit_ = function() {
+  var menuButtons = goog.dom.getElementsByTagNameAndClass(null,
+      'menu-button');
+  for (var i = 0, menuButton; menuButton = menuButtons[i]; i++) {
+    menuButton.onclick = function() {
+      var menu = goog.dom.getNextElementSibling(this);
+      var menuContainer = this.parentNode;
+      goog.dom.classes.toggle(menuContainer, 'menu-button-container-on');
+      var menuItems = goog.dom.getElementsByTagNameAndClass('li',
+          null, menu);
+      for (var j = 0, menuItem; menuItem = menuItems[j]; j++) {
+        menuItem.onclick = function() {
+          var url = this.getAttribute('data-template-url');
+          ccalo.editor.editor.loadFromUrl(url,
+              goog.bind(ccalo.editor.handleHtmlLoad,
+                        ccalo.editor));
+          goog.dom.classes.toggle(menuContainer, 'menu-button-container-on');
+
+        };
+      }
+    };
+  }
 };
 
 ccalo.editor.handleSaveContent_ = function(e) {
