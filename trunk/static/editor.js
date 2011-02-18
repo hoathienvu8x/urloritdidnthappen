@@ -12,8 +12,7 @@ goog.require("goog.dom");
 goog.require("goog.dom.classes");
 goog.require("goog.dom.selection");
 goog.require("goog.events");
-goog.require("goog.events.KeyCodes");
-goog.require("goog.events.KeyHandler");
+goog.require("goog.events.InputHandler")
 goog.require("goog.net.XhrIo");
 goog.require("goog.style");
 goog.require("goog.Uri");
@@ -126,30 +125,61 @@ ccalo.editor.Preview.prototype.setContent = function (content) {
  * An HTML editor. Just a wrapper around a <textarea/>.
  */
 ccalo.editor.Editor = function (element) {
+  // Use textarea if bespin doesn't work out.
+  function fallback(reason) {
+    ccalo.editor.Editor.prototype.getText = function () {
+      return element['value'];
+    };
 
-  var editor_ = this;
-  // TODO(mikol): Maybe get externs working.
-  bespin['useBespin'](element)['then'](function(env) {
-    editor_.bespinEnv_ = env;
-    editor_.bespin_ = env['editor'];
-    editor_.bespin_['syntax'] = 'html';
-    editor_.bespin_['focus'] = true;
-    env['settings']['tabsize'] = 2;
-    editor_.bespin_['value'] = ccalo.editor.editor.saveContent_.value;
-    ccalo.editor.updatePreview();
+    ccalo.editor.Editor.prototype.setText = function (text) {
+      return element['value'] = text;
+    };
 
-    // TODO(mikol): dimensionsChanged returns without error, but has no effect.
-    goog.events.listen(new goog.dom.ViewportSizeMonitor(),
-        goog.events.EventType.RESIZE, function(e) {
-          editor_.bespinEnv_.dimensionsChanged();
+    // Simulate Bespin's asynchronous promise (bespin.useBespin(...).then(...)).
+    setTimeout(function () {
+        element['value'] = ccalo.editor.editor.saveContent_.value;
+        ccalo.editor.updatePreview();
+
+        goog.events.listen(new goog.events.InputHandler(element),
+            goog.events.InputHandler.EventType.INPUT, function() {
+              ccalo.editor.updatePreview();
+            });
+
+        element.setAttribute('class', 'editor-doc');
+        element.focus();
+      }, 0);
+  }
+
+  try {
+    var editor_ = this;
+
+    // TODO(mikol): Maybe get externs working.
+    bespin['useBespin'](element, {
+      "settings":
+      { "fontsize": 13
+      , "tabstop": 2
+      }
+    })['then'](function(env) {
+      editor_.bespin_ = env['editor'];
+      editor_.bespin_['highlightline'] = true;
+      editor_.bespin_['syntax'] = 'html';
+      editor_.bespin_['value'] = ccalo.editor.editor.saveContent_.value;
+      ccalo.editor.updatePreview();
+
+      goog.events.listen(new goog.dom.ViewportSizeMonitor(),
+          goog.events.EventType.RESIZE, goog.bind(env['dimensionsChanged'], env));
+
+      editor_.bespin_['textChanged']['add'](function() {
+          ccalo.editor.updatePreview();
         });
 
-    editor_.bespin_['textChanged']['add'](function() {
-        ccalo.editor.updatePreview();
-      });
-  }, function(error) {
-    throw new Error("Launch failed: " + error);
-  });
+      editor_.bespin_['focus'] = true;
+    }, function(error) {
+      fallback(error);
+    });
+  } catch (ex) {
+    fallback(ex);
+  }
 };
 
 ccalo.editor.Editor.prototype.getText = function () {
