@@ -1,3 +1,151 @@
+;bespin.tiki.register("::javascript", {
+    name: "javascript",
+    dependencies: { "standard_syntax": "0.0.0" }
+});
+bespin.tiki.module("javascript:index",function(require,exports,module) {
+/* ***** BEGIN LICENSE BLOCK *****
+ * Version: MPL 1.1/GPL 2.0/LGPL 2.1
+ *
+ * The contents of this file are subject to the Mozilla Public License Version
+ * 1.1 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ * http://www.mozilla.org/MPL/
+ *
+ * Software distributed under the License is distributed on an "AS IS" basis,
+ * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+ * for the specific language governing rights and limitations under the
+ * License.
+ *
+ * The Original Code is Bespin.
+ *
+ * The Initial Developer of the Original Code is
+ * Mozilla.
+ * Portions created by the Initial Developer are Copyright (C) 2009
+ * the Initial Developer. All Rights Reserved.
+ *
+ * Contributor(s):
+ *   Bespin Team (bespin@mozilla.com)
+ *
+ * Alternatively, the contents of this file may be used under the terms of
+ * either the GNU General Public License Version 2 or later (the "GPL"), or
+ * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+ * in which case the provisions of the GPL or the LGPL are applicable instead
+ * of those above. If you wish to allow use of your version of this file only
+ * under the terms of either the GPL or the LGPL, and not to allow others to
+ * use your version of this file under the terms of the MPL, indicate your
+ * decision by deleting the provisions above and replace them with the notice
+ * and other provisions required by the GPL or the LGPL. If you do not delete
+ * the provisions above, a recipient may use your version of this file under
+ * the terms of any one of the MPL, the GPL or the LGPL.
+ *
+ * ***** END LICENSE BLOCK ***** */
+
+"define metadata";
+({
+    "description": "JavaScript syntax highlighter",
+    "dependencies": { "standard_syntax": "0.0.0" },
+    "environments": { "worker": true },
+    "provides": [
+        {
+            "ep": "syntax",
+            "name": "js",
+            "pointer": "#JSSyntax",
+            "fileexts": [ "js", "json" ]
+        }
+    ]
+});
+"end";
+
+var Promise = require('bespin:promise').Promise;
+var StandardSyntax = require('standard_syntax').StandardSyntax;
+
+var states = {
+    start: [
+        {
+            regex:  /^(?:break|case|catch|continue|default|delete|do|else|false|finally|for|function|if|in|instanceof|let|new|null|return|switch|this|throw|true|try|typeof|var|void|while|with)(?![a-zA-Z0-9_])/,
+            tag:    'keyword'
+        },
+        {
+            regex:  /^[A-Za-z_][A-Za-z0-9_]*/,
+            tag:    'plain'
+        },
+        {
+            regex:  /^[^'"\/ \tA-Za-z0-9_]+/,
+            tag:    'plain'
+        },
+        {
+            regex:  /^[ \t]+/,
+            tag:    'plain'
+        },
+        {
+            regex:  /^'/,
+            tag:    'string',
+            then:   'qstring'
+        },
+        {
+            regex:  /^"/,
+            tag:    'string',
+            then:   'qqstring'
+        },
+        {
+            regex:  /^\/\/.*/,
+            tag:    'comment'
+        },
+        {
+            regex:  /^\/\*/,
+            tag:    'comment',
+            then:   'comment'
+        },
+        {
+            regex:  /^./,
+            tag:    'plain'
+        }
+    ],
+
+    qstring: [
+        {
+            regex:  /^'/,
+            tag:    'string',
+            then:   'start'
+        },
+        {
+            regex:  /^(?:\\.|[^'\\])+/,
+            tag:    'string'
+        }
+    ],
+
+    qqstring: [
+        {
+            regex:  /^"/,
+            tag:    'string',
+            then:   'start'
+        },
+        {
+            regex:  /^(?:\\.|[^"\\])+/,
+            tag:    'string'
+        }
+    ],
+
+    comment: [
+        {
+            regex:  /^[^*\/]+/,
+            tag:    'comment'
+        },
+        {
+            regex:  /^\*\//,
+            tag:    'comment',
+            then:   'start'
+        },
+        {
+            regex:  /^[*\/]/,
+            tag:    'comment'
+        }
+    ]
+};
+
+exports.JSSyntax = new StandardSyntax(states);
+
+});
 ;bespin.tiki.register("::syntax_worker", {
     name: "syntax_worker",
     dependencies: { "syntax_directory": "0.0.0", "underscore": "0.0.0" }
@@ -55,7 +203,6 @@ var syntaxDirectory = require('syntax_directory').syntaxDirectory;
 
 var syntaxWorker = {
     engines: {},
-    settings: {},
 
     annotate: function(state, lines, range) {
         function splitParts(str) { return str.split(":"); }
@@ -64,14 +211,13 @@ var syntaxWorker = {
         }
 
         var engines = this.engines;
-        var states = [], attrs = [], symbols = [];
+        var states = [], attrs = [];
         var stateStack = _(state.split(" ")).map(splitParts);
 
         _(lines).each(function(line, offset) {
             saveState();
 
-            var lineAttrs = [], lineSymbols = {};
-            var col = 0;
+            var lineAttrs = [], col = 0;
             while (col < line.length) {
                 // Check for the terminator string.
                 // FIXME: This is wrong. It should check *inside* the token
@@ -108,11 +254,6 @@ var syntaxWorker = {
                     }
 
                     token = result.token;
-
-                    var sym = result.symbol;
-                    if (sym != null) {
-                        lineSymbols["-" + sym[0]] = sym[1];
-                    }
                 }
 
                 lineAttrs.push(token);
@@ -120,12 +261,11 @@ var syntaxWorker = {
             }
 
             attrs.push(lineAttrs);
-            symbols.push(lineSymbols);
         });
 
         saveState();
 
-        return { states: states, attrs: attrs, symbols: symbols };
+        return { states: states, attrs: attrs };
     },
 
     loadSyntax: function(syntaxName) {
@@ -146,13 +286,6 @@ var syntaxWorker = {
         info.extension.load().then(function(engine) {
             engines[syntaxName] = engine;
 
-            if (info.settings != null) {
-                engine.settings = {};
-                info.settings.forEach(function(name) {
-                    engine.settings[name] = this.settings[name];
-                }, this);
-            }
-
             var subsyntaxes = engine.subsyntaxes;
             if (subsyntaxes == null) {
                 pr.resolve();
@@ -164,11 +297,6 @@ var syntaxWorker = {
         }.bind(this));
 
         return pr;
-    },
-
-    setSyntaxSetting: function(name, value) {
-        this.settings[name] = value;
-        return true;
     }
 };
 
@@ -1118,200 +1246,6 @@ exports.HTMLSyntax = new StandardSyntax(states, [ 'js' ]);
 
 
 });
-;bespin.tiki.register("::js_syntax", {
-    name: "js_syntax",
-    dependencies: { "standard_syntax": "0.0.0", "settings": "0.0.0" }
-});
-bespin.tiki.module("js_syntax:index",function(require,exports,module) {
-/* ***** BEGIN LICENSE BLOCK *****
- * Version: MPL 1.1/GPL 2.0/LGPL 2.1
- *
- * The contents of this file are subject to the Mozilla Public License Version
- * 1.1 (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
- * http://www.mozilla.org/MPL/
- *
- * Software distributed under the License is distributed on an "AS IS" basis,
- * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
- * for the specific language governing rights and limitations under the
- * License.
- *
- * The Original Code is Bespin.
- *
- * The Initial Developer of the Original Code is
- * Mozilla.
- * Portions created by the Initial Developer are Copyright (C) 2009
- * the Initial Developer. All Rights Reserved.
- *
- * Contributor(s):
- *   Bespin Team (bespin@mozilla.com)
- *
- * Alternatively, the contents of this file may be used under the terms of
- * either the GNU General Public License Version 2 or later (the "GPL"), or
- * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
- * in which case the provisions of the GPL or the LGPL are applicable instead
- * of those above. If you wish to allow use of your version of this file only
- * under the terms of either the GPL or the LGPL, and not to allow others to
- * use your version of this file under the terms of the MPL, indicate your
- * decision by deleting the provisions above and replace them with the notice
- * and other provisions required by the GPL or the LGPL. If you do not delete
- * the provisions above, a recipient may use your version of this file under
- * the terms of any one of the MPL, the GPL or the LGPL.
- *
- * ***** END LICENSE BLOCK ***** */
-
-"define metadata";
-({
-    "description": "JavaScript syntax highlighter",
-    "dependencies": { "settings": "0.0.0", "standard_syntax": "0.0.0" },
-    "environments": { "worker": true },
-    "provides": [
-        {
-            "ep": "syntax",
-            "name": "js",
-            "pointer": "#JSSyntax",
-            "fileexts": [ "js", "json" ],
-            "settings": [ "specialmodules" ]
-        },
-        {
-            "ep": "setting",
-            "name": "specialmodules",
-            "description": "Regex that matches special modules",
-            "type": "text",
-            "defaultValue": "^jetpack\\.[^\"']+"
-        }
-    ]
-});
-"end";
-
-var StandardSyntax = require('standard_syntax').StandardSyntax;
-
-var states = {
-    start: [
-        {
-            regex:  /^var(?=\s*([A-Za-z_$][A-Za-z0-9_$]*)\s*=\s*require\s*\(\s*['"]([^'"]*)['"]\s*\)\s*[;,])/,
-            tag:    'keyword',
-            symbol: '$1:$2'
-        },
-        {
-            regex:  /^(?:break|case|catch|continue|default|delete|do|else|false|finally|for|function|if|in|instanceof|let|new|null|return|switch|this|throw|true|try|typeof|var|void|while|with)(?![a-zA-Z0-9_])/,
-            tag:    'keyword'
-        },
-        {
-            regex:  /^require/,
-            tag:    'builtin',
-            then:   'require'
-        },
-        {
-            regex:  /^[A-Za-z_][A-Za-z0-9_]*/,
-            tag:    'plain'
-        },
-        {
-            regex:  /^[^'"\/ \tA-Za-z0-9_]+/,
-            tag:    'plain'
-        },
-        {
-            regex:  /^[ \t]+/,
-            tag:    'plain'
-        },
-        {
-            regex:  /^'(?=.)/,
-            tag:    'string',
-            then:   'qstring'
-        },
-        {
-            regex:  /^"(?=.)/,
-            tag:    'string',
-            then:   'qqstring'
-        },
-        {
-            regex:  /^\/\/.*/,
-            tag:    'comment'
-        },
-        {
-            regex:  /^\/\*/,
-            tag:    'comment',
-            then:   'comment'
-        },
-        {
-            regex:  /^./,
-            tag:    'plain'
-        }
-    ],
-
-    qstring: [
-        {
-            regex:  /^(?:\\.|[^'\\])*'?/,
-            tag:    'string',
-            then:   'start'
-        }
-    ],
-
-    qqstring: [
-        {
-            regex:  /^(?:\\.|[^"\\])*"?/,
-            tag:    'string',
-            then:   'start'
-        }
-    ],
-
-    comment: [
-        {
-            regex:  /^[^*\/]+/,
-            tag:    'comment'
-        },
-        {
-            regex:  /^\*\//,
-            tag:    'comment',
-            then:   'start'
-        },
-        {
-            regex:  /^[*\/]/,
-            tag:    'comment'
-        }
-    ],
-
-    /* Special handling for "require" */
-
-    require: [
-        {
-            regex:  /^\(["']/,
-            tag:    'plain',
-            then:   'requireBody'
-        },
-        {
-            regex:  /^/,
-            tag:    'plain',
-            then:   'start'
-        }
-    ],
-
-    requireBody: [
-        {
-            regexSetting:   'specialmodules',
-            tag:            'specialmodule',
-            then:           'requireEnd'
-        },
-        {
-            regex:  /^[^"']+/,
-            tag:    'module',
-            then:   'requireEnd'
-        }
-    ],
-
-    requireEnd: [
-        {
-            regex:  /^["']?/,
-            tag:    'plain',
-            then:   'start'
-        }
-    ]
-};
-
-exports.JSSyntax = new StandardSyntax(states);
-
-
-});
 ;bespin.tiki.register("::standard_syntax", {
     name: "standard_syntax",
     dependencies: { "syntax_worker": "0.0.0", "syntax_directory": "0.0.0", "underscore": "0.0.0" }
@@ -1374,8 +1308,6 @@ var syntaxDirectory = require('syntax_directory').syntaxDirectory;
 exports.StandardSyntax = function(states, subsyntaxes) {
     this.states = states;
     this.subsyntaxes = subsyntaxes;
-
-    this.settings = {};
 };
 
 /** This syntax controller exposes a simple regex- and line-based parser. */
@@ -1392,13 +1324,7 @@ exports.StandardSyntax.prototype = {
 
         var result = null;
         _(this.states[state]).each(function(alt) {
-            var regex;
-            if (alt.regexSetting != null) {
-                regex = new RegExp(this.settings[alt.regexSetting]);
-            } else {
-                regex = alt.regex;
-            }
-
+            var regex = alt.regex;
             var match = regex.exec(str);
             if (match == null) {
                 return;
@@ -1407,14 +1333,6 @@ exports.StandardSyntax.prototype = {
             var len = match[0].length;
             token.end = col + len;
             token.tag = alt.tag;
-
-            var newSymbol = null;
-            if (alt.hasOwnProperty('symbol')) {
-                var replace = function(_, n) { return match[n]; };
-                var symspec = alt.symbol.replace(/\$([0-9]+)/g, replace);
-                var symMatch = /^([^:]+):(.*)/.exec(symspec);
-                newSymbol = [ symMatch[1], symMatch[2] ];
-            }
 
             var nextState, newContext = null;
             if (alt.hasOwnProperty('then')) {
@@ -1430,13 +1348,13 @@ exports.StandardSyntax.prototype = {
                 nextState = fullState;
             }
 
-            result = { state: nextState, token: token, symbol: newSymbol };
+            result = { state: nextState, token: token };
             if (newContext != null) {
                 result.newContext = newContext;
             }
 
             _.breakLoop();
-        }, this);
+        });
 
         return result;
     }
@@ -1444,7 +1362,7 @@ exports.StandardSyntax.prototype = {
 
 
 });
-bespin.metadata = {"js_syntax": {"resourceURL": "resources/js_syntax/", "name": "js_syntax", "environments": {"worker": true}, "dependencies": {"standard_syntax": "0.0.0", "settings": "0.0.0"}, "testmodules": [], "provides": [{"settings": ["specialmodules"], "pointer": "#JSSyntax", "ep": "syntax", "fileexts": ["js", "json"], "name": "js"}, {"description": "Regex that matches special modules", "defaultValue": "^jetpack\\.[^\"']+", "type": "text", "ep": "setting", "name": "specialmodules"}], "type": "plugins/supported", "description": "JavaScript syntax highlighter"}, "stylesheet": {"resourceURL": "resources/stylesheet/", "name": "stylesheet", "environments": {"worker": true}, "dependencies": {"standard_syntax": "0.0.0"}, "testmodules": [], "provides": [{"pointer": "#CSSSyntax", "ep": "syntax", "fileexts": ["css", "less"], "name": "css"}], "type": "plugins/supported", "description": "CSS syntax highlighter"}, "syntax_worker": {"resourceURL": "resources/syntax_worker/", "description": "Coordinates multiple syntax engines", "environments": {"worker": true}, "dependencies": {"syntax_directory": "0.0.0", "underscore": "0.0.0"}, "testmodules": [], "type": "plugins/supported", "name": "syntax_worker"}, "standard_syntax": {"resourceURL": "resources/standard_syntax/", "description": "Easy-to-use basis for syntax engines", "environments": {"worker": true}, "dependencies": {"syntax_worker": "0.0.0", "syntax_directory": "0.0.0", "underscore": "0.0.0"}, "testmodules": [], "type": "plugins/supported", "name": "standard_syntax"}, "html": {"resourceURL": "resources/html/", "name": "html", "environments": {"worker": true}, "dependencies": {"standard_syntax": "0.0.0"}, "testmodules": [], "provides": [{"pointer": "#HTMLSyntax", "ep": "syntax", "fileexts": ["htm", "html"], "name": "html"}], "type": "plugins/supported", "description": "HTML syntax highlighter"}};/* ***** BEGIN LICENSE BLOCK *****
+bespin.metadata = {"standard_syntax": {"resourceURL": "resources/standard_syntax/", "description": "Easy-to-use basis for syntax engines", "environments": {"worker": true}, "dependencies": {"syntax_worker": "0.0.0", "syntax_directory": "0.0.0", "underscore": "0.0.0"}, "testmodules": [], "type": "plugins/supported", "name": "standard_syntax"}, "stylesheet": {"resourceURL": "resources/stylesheet/", "name": "stylesheet", "environments": {"worker": true}, "dependencies": {"standard_syntax": "0.0.0"}, "testmodules": [], "provides": [{"pointer": "#CSSSyntax", "ep": "syntax", "fileexts": ["css", "less"], "name": "css"}], "type": "plugins/supported", "description": "CSS syntax highlighter"}, "javascript": {"resourceURL": "resources/javascript/", "name": "javascript", "environments": {"worker": true}, "dependencies": {"standard_syntax": "0.0.0"}, "testmodules": [], "provides": [{"pointer": "#JSSyntax", "ep": "syntax", "fileexts": ["js", "json"], "name": "js"}], "type": "plugins/supported", "description": "JavaScript syntax highlighter"}, "syntax_worker": {"resourceURL": "resources/syntax_worker/", "description": "Coordinates multiple syntax engines", "environments": {"worker": true}, "dependencies": {"syntax_directory": "0.0.0", "underscore": "0.0.0"}, "testmodules": [], "type": "plugins/supported", "name": "syntax_worker"}, "html": {"resourceURL": "resources/html/", "name": "html", "environments": {"worker": true}, "dependencies": {"standard_syntax": "0.0.0"}, "testmodules": [], "provides": [{"pointer": "#HTMLSyntax", "ep": "syntax", "fileexts": ["htm", "html"], "name": "html"}], "type": "plugins/supported", "description": "HTML syntax highlighter"}};/* ***** BEGIN LICENSE BLOCK *****
  * Version: MPL 1.1/GPL 2.0/LGPL 2.1
  *
  * The contents of this file are subject to the Mozilla Public License Version
@@ -1521,7 +1439,7 @@ function pump() {
             if (!bespin.hasOwnProperty('metadata')) {
                 pr = catalog.loadMetadataFromURL("plugin/register/worker");
             } else {
-                catalog.registerMetadata(bespin.metadata);
+                catalog.loadMetadata(bespin.metadata);
                 pr = new Promise();
                 pr.resolve();
             }
