@@ -8,9 +8,8 @@
     <link rel="apple-touch-icon" href="/apple-touch-icon.png">-->
     <title>{{ title }}</title>
     {% block head %}{% endblock %}
-    {% block head %}{% endblock %}
   </head>
-  <body {% if pagename %}class="{{ pagename }}-body"{% endif %}>
+  <body{% if pagename %} class="{{ pagename }}-body"{% endif %}>
 
     <div class="editor-chrome">
       <div class="editor-chrome-header">
@@ -21,13 +20,19 @@
         {% if sample_templates %}
           <div id="editor-load-template" class="menu-button-container">
             <button id="editor-load-template-btn"
-              class="menu-button">Templates</button>
+              class="menu-button">+Template</button>
             <ul class="menu-button-menu">
-            {% for template in sample_templates %}
-              <li data-template-url="{{ template.url }}">
-                {{ template.name }}
+              {% for template in sample_templates %}
+                <li data-template-url="{{ template.url }}" class="menu-item">
+                  {{ template.name }}
+                </li>
+              {% endfor %}
+              <li>
+                <label for="editor-load-template-url">URL:</label>
+                <input type="text" id="editor-load-template-url">
+                <button type="button" id="editor-load-template-url-btn"
+                  >Load</button>
               </li>
-            {% endfor %}
             </ul>
           </div>
         {% endif %}

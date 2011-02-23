@@ -74,7 +74,7 @@ class RequestHandler(webapp.RequestHandler):
     server_software = os.getenv('SERVER_SOFTWARE')
     if server_software and 'Dev' in server_software:
       current_version_id = str(datetime.datetime.now())
-      is_production = True
+      is_production = False
 
     template_vars['is_production'] = is_production
     template_vars['current_version_id'] = current_version_id
@@ -195,11 +195,22 @@ class RenderHandler(RequestHandler):
     self.response.out.write(prototype.content)
 
 
+
+class ProxyHandler(RequestHandler):
+  """Gets the source of an url."""
+  def get(self):
+    result = urlfetch.fetch(self.request.get('url', 'http://www.google.com'))
+    if result.status_code != 200:
+      logging.error('Unable to urlfetch template_url: %s.' % template_url)
+      return self.error(503)
+    self.response.out.write(result.content)
+
 def main():
   application = webapp.WSGIApplication(
                                        [(r'/save/.*', SaveHandler),
                                         (r'/render/.*', RenderHandler),
                                         (r'/mine', MineHandler),
+                                        (r'/proxy', ProxyHandler),
                                         (r'/.*', EditorHandler),],
                                        debug=True)
   wsgiref.handlers.CGIHandler().run(application)

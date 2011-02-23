@@ -43,6 +43,18 @@ ccalo.editor.init = function () {
       ccalo.editor.handleSaveContent_, false, ccalo.editor);
 
   ccalo.editor.menuButtonInit_();
+  goog.dom.getElement('editor-load-template-url-btn').onclick = function(e) {
+    var url = goog.dom.getElement('editor-load-template-url').value;
+    if (url.indexOf('http://') == -1) {
+      url = 'http://' + url;
+    }
+    url = '/proxy?url=' + encodeURIComponent(url);
+    ccalo.editor.editor.loadFromUrl(
+        url,
+        goog.bind(ccalo.editor.handleHtmlLoad, ccalo.editor));
+    var menuContainer = this.parentNode.parentNode;
+    goog.dom.classes.toggle(menuContainer, 'menu-button-container-on');
+  };
 };
 
 ccalo.editor.menuButtonInit_ = function() {
@@ -54,7 +66,7 @@ ccalo.editor.menuButtonInit_ = function() {
       var menuContainer = this.parentNode;
       goog.dom.classes.toggle(menuContainer, 'menu-button-container-on');
       var menuItems = goog.dom.getElementsByTagNameAndClass('li',
-          null, menu);
+          'menu-item', menu);
       for (var j = 0, menuItem; menuItem = menuItems[j]; j++) {
         menuItem.onclick = function() {
           var url = this.getAttribute('data-template-url');
@@ -130,6 +142,7 @@ ccalo.editor.Editor = function (element) {
     ccalo.editor.Editor.prototype.getText = function () {
       return element['value'];
     };
+
 
     ccalo.editor.Editor.prototype.setText = function (text) {
       return element['value'] = text;

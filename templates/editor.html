@@ -12,35 +12,35 @@
 
 {% block body %}
 
-<div class="editor-content">
-  <div class="editor-pane editor-pane-left">
-    <textarea class="editor-bespin"></textarea>
+  <div class="editor-content">
+    <div class="editor-pane editor-pane-left">
+      <textarea class="editor-bespin"></textarea>
+    </div>
+    <div class="editor-pane editor-pane-right" style="position: absolute;">
+      <iframe class="editor-preview"></iframe>
+    </div>
   </div>
-  <div class="editor-pane editor-pane-right" style="position: absolute;">
-    <iframe class="editor-preview"></iframe>
-  </div>
-</div>
 
-{% if is_production %}
-  <script src="/static/editor.prod.js"></script>
-{% else %}
-  <script src="http://closure-library.googlecode.com/svn/trunk/closure/goog/base.js"></script>
-  <script>
-    goog.require("goog.array");
-    goog.require("goog.dom");
-    goog.require("goog.dom.classes");
-    goog.require("goog.dom.selection");
-    goog.require("goog.events");
-    goog.require("goog.events.KeyCodes");
-    goog.require("goog.events.KeyHandler");
-    goog.require("goog.net.XhrIo");
-    goog.require("goog.style");
-    goog.require("goog.Uri");
-    goog.require("goog.Uri.QueryData");
-    goog.require("goog.dom.ViewportSizeMonitor");
-  </script>
-  <script src="/static/editor.js"></script>
-{% endif %}
+  {% if is_production %}
+    <script src="/static/editor.prod.js"></script>
+  {% else %}
+    <script src="http://closure-library.googlecode.com/svn/trunk/closure/goog/base.js"></script>
+    <script>
+      goog.require("goog.array");
+      goog.require("goog.dom");
+      goog.require("goog.dom.classes");
+      goog.require("goog.dom.selection");
+      goog.require("goog.events");
+      goog.require("goog.events.KeyCodes");
+      goog.require("goog.events.KeyHandler");
+      goog.require("goog.net.XhrIo");
+      goog.require("goog.style");
+      goog.require("goog.Uri");
+      goog.require("goog.Uri.QueryData");
+      goog.require("goog.dom.ViewportSizeMonitor");
+    </script>
+    <script src="/static/editor.js"></script>
+  {% endif %}
 
 {% endblock %}
 
