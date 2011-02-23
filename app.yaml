@@ -5,6 +5,15 @@ api_version: 1
 
 handlers:
 
+skip_files: |
+  ^(.*/)?(
+  (#.*#)|
+  (.*~)|
+  (.*\.py[co])|
+  (.*/closure-.*)|
+  (BUILD|
+  )$
+
 - url: /favicon\.ico
   static_files: static/img/favicon.ico
   upload: static/img/favicon.ico
