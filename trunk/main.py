@@ -111,7 +111,6 @@ class EditorHandler(RequestHandler):
       try:
         key = self.request.path[1:]
         prototype = FetchPrototype(key)
-        logging.info('got prototype %s, %s' % (prototype, prototype.content))
         if prototype.user != user:
           # unsets the key so that any save action creates a new entity.
           key = ''
