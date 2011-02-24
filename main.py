@@ -19,6 +19,7 @@ __version__ = '0.1'
 import datetime
 import logging
 import os
+import re
 import sys
 import time
 
@@ -128,18 +129,29 @@ class EditorHandler(RequestHandler):
     self.RenderTemplateOut('editor.html', template_vars)
 
 
+def ParseTitleFromContent(content):
+  title = None
+  match = re.search('title>([^<]+)<\\/title', content)
+  if match:
+    title = match.group(1)
+  logging.info('title: %s' % title)
+  return title
+
+
 class SaveHandler(RequestHandler):
   def post(self):
     try:
       # 6 here is the len('/save/')
-      key = int(self.request.path[6:])
-    except:
+      key = self.request.path[6:]
+    except e:
+      logging.info('error parsing key: %s' % e)
       key = None
 
     user = users.get_current_user()
     content = self.request.get('content')
 
-    logging.info('key: %s, content: %s' % (key, content))
+    logging.info('key: %s, content: %s, path: %s' % (key, content,
+        self.request.path))
 
     if user is None:
       self.error(503)
@@ -154,6 +166,7 @@ class SaveHandler(RequestHandler):
         self.error(503)
         return self.response.out.write('You do not own this prototype.')
       prototype.content = content
+      prototype.name = ParseTitleFromContent(content)
     else:
       prototype = Prototype(content=content, user=user)
     prototype.put()
