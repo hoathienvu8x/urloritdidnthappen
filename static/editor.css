@@ -74,6 +74,9 @@ a:hover {
 .editor-chrome-header-links form {
   display: inline-block;
 }
+.editor-chrome-header-links * {
+  margin-left: .7em;
+}
 
 .editor-content {
   -webkit-box-flex: 1;

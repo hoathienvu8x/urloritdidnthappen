@@ -40,12 +40,12 @@
 
         <div class="editor-chrome-header-links">
           <form method="post" action="/save/{{ key }}" id="save-content-form">
+            <input type="hidden" name="continue" value="{{ continue }}">
             <textarea id="save-content" name="content"
               style="display:none">{{ content }}</textarea>
             <input id="save-content-btn" type="submit" value="save">
           </form>
-
-          <a href="/mine">{{ user }}</a>
+          <a href="/mine">{{ user_nickname }}</a>
           <a href="/1">About</a>
         </div>
       </div>

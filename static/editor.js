@@ -169,8 +169,9 @@ ccalo.editor.Editor = function (element) {
     // TODO(mikol): Maybe get externs working.
     bespin['useBespin'](element, {
       "settings":
-      { "fontsize": 13
-      , "tabstop": 2
+      { "fontsize": 16,
+        "tabstop": 2,
+        "theme": "white"
       }
     })['then'](function(env) {
       editor_.bespin_ = env['editor'];
