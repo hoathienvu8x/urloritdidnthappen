@@ -35,30 +35,20 @@ from google.appengine.ext.webapp.util import login_required
 
 from django.utils import simplejson
 
-SAMPLE_TEMPLATES = [
-  {
-    'name': 'default',
-    'url': '/static/templates/default.html'
-  },
-  {
-    'name': 'html5boilerplate',
-    'url': '/static/templates/html5boilerplate.html'
-  },
-  {
-    'name': 'centering',
-    'url': '/static/templates/centering.html'
-  }
-]
 
 #### DB MODELS ####
 class Prototype(db.Model):
   user = db.UserProperty(required=True)
+  forked_key = db.IntegerProperty()
+  auto_refresh = db.BooleanProperty(default=True)
+  auto_save = db.BooleanProperty(default=True)
   name = db.StringProperty()
-  content = db.TextProperty(required=True)
+  content = db.TextProperty()
   created = db.DateTimeProperty(auto_now_add=True)
   modified = db.DateTimeProperty(auto_now=True)
 
 
+#### URL Handlers ####
 class RequestHandler(webapp.RequestHandler):
   """Provides common functionality for use in other RequestHandlers."""
 
@@ -99,32 +89,73 @@ class EditorHandler(RequestHandler):
   @login_required
   def get(self):
     user = users.get_current_user()
-    url = self.request.get('url')
-    key = None
+    nickname = re.sub(r'@.*', '', user.email())
+    domain = re.sub(r'^[^@]+@', '', user.email())
 
-    if url:
-      result = urlfetch.fetch(url)
-      if result.status_code != 200:
-        self.error(503)
-        return self.response.out.write('Unable to urlfetch url: %s.' % url)
-      content = result.content
-    else:
+    # Removes any leading and trailing slashes.
+    logging.info('path: %s' % self.request.path)
+    path_trimmed = re.sub('^\\/|\\/$', '', self.request.path)
+    logging.info('path_trimmed: %s' % path_trimmed)
+    path_bits = path_trimmed.split('/')
+    logging.info('path_bits: %s' % path_bits)
+
+    if path_trimmed == '' or len(path_bits) == 0:
+      prototype = Prototype(user=user, content='')
+      prototype.put()
+      return self.redirect('/%s' % str(prototype.key().id()))
+
+    # Owner or else fork.
+    if len(path_bits) == 1:
+      key = path_bits[0]
       try:
-        key = self.request.path[1:]
         prototype = FetchPrototype(key)
-        if prototype.user != user:
-          # unsets the key so that any save action creates a new entity.
-          key = ''
-        content = prototype.content
       except ValueError:
-        logging.info('Got ValueError with key: %s' % key)
-        content = ''
+        self.error(404)
+        return self.response.out.write('There is no prototype for key: %s' %
+                                       key)
+      # Fork.
+      if prototype.user != user and len(path_bits) == 1:
+        # Have they already made a fork of this?
+        query = Prototype.all()
+        query.filter('forked_key =', int(key))
+        query.filter('user =', user)
+        prototype = query.get()
+        if prototype:
+          self.redirect('/%s/%s' % (key, nickname))
+        else:
+          logging.info('Student fork.')
+          new_prototype = Prototype(user=user, content=prototype.content,
+                                    forked_key=int(key))
+          new_prototype.put()
+          return self.redirect('/%s/%s' % (key, nickname))
+
+
+    # Student.
+    elif len(path_bits) == 2:
+      forked_key = int(path_bits[0])
+      path_user = path_bits[1]
+      # Assumes same domain for users in the system..
+      user_prop = users.User('%s@%s' % (path_user, domain))
+      query = Prototype.all()
+      query.filter('forked_key =', forked_key)
+      query.filter('user =', user_prop)
+      prototype = query.get()
+      if not prototype:
+        self.error(404)
+        return self.response.out.write('There is no prototype for this url.')
+
+      # Fork from student created prototype.
+      if nickname != path_user:
+        logging.info('Fork from student created prototype')
+        new_prototype = Prototype(user=user, content=prototype.content)
+        new_prototype.put()
+        return self.redirect('/%s' % new_prototype.key().id())
 
     template_vars = {
-      'key': key,
-      'url': url,
-      'content': content,
-      'sample_templates': SAMPLE_TEMPLATES
+      'key': prototype.key(),
+      'continue': self.request.path,
+      'user_nickname': nickname,
+      'content': prototype.content
     }
     self.RenderTemplateOut('editor.html', template_vars)
 
@@ -156,9 +187,6 @@ class SaveHandler(RequestHandler):
     if user is None:
       self.error(503)
       return self.response.out.write('Cowardly refusal to be logged in.')
-    if not content:
-      self.error(503)
-      return self.response.out.write('Cowardly refusal to save any content.')
 
     if key:
       prototype = FetchPrototype(key)
@@ -171,7 +199,9 @@ class SaveHandler(RequestHandler):
       prototype = Prototype(content=content, user=user)
     prototype.put()
 
-    self.redirect('/%s' % str(prototype.key()))
+    continue_path = self.request.get('continue',
+        '/%s' % str(prototype.key().id()))
+    self.redirect(continue_path)
 
 
 class MineHandler(RequestHandler):
@@ -207,6 +237,10 @@ class RenderHandler(RequestHandler):
     self.response.out.write(prototype.content)
 
 
+class LogOutHandler(RequestHandler):
+  def get(self):
+    self.redirect(users.create_logout_url('/'))
+
 
 class ProxyHandler(RequestHandler):
   """Gets the source of an url."""
@@ -217,12 +251,14 @@ class ProxyHandler(RequestHandler):
       return self.error(503)
     self.response.out.write(result.content)
 
+
 def main():
   application = webapp.WSGIApplication(
                                        [(r'/save/.*', SaveHandler),
                                         (r'/render/.*', RenderHandler),
                                         (r'/mine', MineHandler),
                                         (r'/proxy', ProxyHandler),
+                                        (r'/logout', LogOutHandler),
                                         (r'/.*', EditorHandler),],
                                        debug=True)
   wsgiref.handlers.CGIHandler().run(application)

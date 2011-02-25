@@ -9,12 +9,12 @@
     {% for prototype in prototypes %}
       <li>
         <div>
-          <a href="/{{ prototype.key}}">{% spaceless %}
+          <a href="/{{ prototype.key.id}}">{% spaceless %}
             <strong>
             {% if prototype.name %}
               {{ prototype.name }}
             {% else %}
-              {{ prototype.key }}
+              {{ prototype.key.id }}
             {% endif %}
             </strong>
           {% endspaceless %}</a>
