@@ -1,19 +1,21 @@
 {% extends "base.html" %}
 
 {% block head %}
+  <!--
   <link id="bespin_base" href="/static/bespin-embedded">
   {% if is_production %}
     <script src="/static/bespin-embedded/BespinEmbedded.js"></script>
   {% else %}
     <script src="/static/bespin-embedded/BespinEmbedded.uncompressed.js"></script>
   {% endif %}
+  -->
 {% endblock %}
 
 {% block body %}
 
   <div class="editor-content">
     <div class="editor-pane editor-pane-left">
-      <textarea class="editor-bespin"></textarea>
+      <pre id="editor-ace" style="visibility:hidden">yoyo</pre>
     </div>
     <div class="editor-pane editor-pane-right" style="position: absolute;">
       <iframe class="editor-preview"></iframe>
@@ -23,6 +25,10 @@
   {% if is_production %}
     <script src="/static/editor.prod.js"></script>
   {% else %}
+    <script src="/static/ace/src/ace.js"></script>
+    <script src="/static/ace/src/theme-twilight.js"></script>
+    <script src="/static/ace/src/mode-html.js"></script>
+
     <script src="http://closure-library.googlecode.com/svn/trunk/closure/goog/base.js"></script>
     <script>
       goog.require("goog.array");
