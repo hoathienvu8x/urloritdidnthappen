@@ -83,24 +83,11 @@ a:hover {
   position: relative;
 }
 
-.editor-bespin {
+#editor-ace {
   width: 100%;
   height: 100%;
 }
 
-/* BUG(mikol): env.dimensionsChanged() is called, but doesn’t have any effect
-(in bespin 0.8.0 and 0.9a2) because when it is called, it A) checks that the old
-canvas width and/or height have changed, B) stores the current canvas width and
-height for future checks, then C) calls textView.invalidate() which eventually
-checks that another rendering process isn’t already in flight before proceeding,
-and finally D) text.invalidate() returns early beacuse there is another render
-task in flight. Future calls to dimensionsChanged() have no effect because the
-"old" canvans dimensions haven’t changed since they were stored in #B before the
-render step that didn't actually happen. We can mitigate the impact of this bug
-by setting the bespin element's overflow to hidden. */
-.bespin {
-  overflow: hidden !important;
-}
 
 .editor-doc {
   -webkit-box-sizing: border-box;

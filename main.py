@@ -119,8 +119,8 @@ class EditorHandler(RequestHandler):
         query = Prototype.all()
         query.filter('forked_key =', int(key))
         query.filter('user =', user)
-        prototype = query.get()
-        if prototype:
+        forked_prototype = query.get()
+        if forked_prototype:
           self.redirect('/%s/%s' % (key, nickname))
         else:
           logging.info('Student fork.')
