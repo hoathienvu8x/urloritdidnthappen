@@ -31,13 +31,17 @@ ccalo.assert = function (object) {
  */
 ccalo.editor.init = function () {
   var previewElement = goog.dom.getElementsByClass("editor-preview")[0];
-  //var editorElement = goog.dom.getElementsByClass("editor-bespin")[0];
   var editorElement = goog.dom.getElement("editor-ace");
 
   ccalo.editor.preview = new ccalo.editor.Preview(previewElement);
   ccalo.editor.editor = new ccalo.editor.Editor(editorElement);
 
   ccalo.editor.editor.saveContent_ = document.getElementById('save-content');
+  ccalo.editor.editor.setText(ccalo.editor.editor.saveContent_.value);
+
+  ccalo.editor.editor.ace_.focus();
+  ccalo.editor.editor.ace_.gotoLine(1);
+
   ccalo.editor.saveContentForm_ = document.getElementById('save-content-form');
   ccalo.editor.saveContentBtn_ = document.getElementById('save-content-btn');
   goog.events.listen(ccalo.editor.saveContentBtn_, "click",
@@ -103,7 +107,6 @@ ccalo.editor.Preview.prototype.setContent = function (content) {
  * An HTML editor.
  */
 ccalo.editor.Editor = function (element) {
-
   element.setAttribute('class', 'editor-doc');
   var aceEditor = ace.edit('editor-ace');
   aceEditor.setTheme('ace/theme/twilight');
@@ -116,7 +119,6 @@ ccalo.editor.Editor = function (element) {
   aceEditor.getSession().on('change', function() {
       ccalo.editor.updatePreview();
   });
-  aceEditor.focus();
   document.getElementById('editor-ace').style.fontSize = '14px';
   document.getElementById('editor-ace').style.visibility = 'visible';
   this.ace_ = aceEditor;
