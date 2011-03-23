@@ -233,3 +233,8 @@ a:hover {
   background: #ccc;
   cursor: pointer;
 }
+
+#save-content-ts {
+  font-size: 90%;
+  font-weight: normal;
+}

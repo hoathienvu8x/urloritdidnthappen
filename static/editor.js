@@ -10,6 +10,7 @@ goog.provide("ccalo.editor");
 goog.require("goog.array");
 goog.require("goog.dom");
 goog.require("goog.dom.classes");
+goog.require("goog.dom.forms");
 goog.require("goog.dom.selection");
 goog.require("goog.events");
 goog.require("goog.events.InputHandler")
@@ -44,15 +45,47 @@ ccalo.editor.init = function () {
 
   ccalo.editor.saveContentForm_ = document.getElementById('save-content-form');
   ccalo.editor.saveContentBtn_ = document.getElementById('save-content-btn');
-  goog.events.listen(ccalo.editor.saveContentBtn_, "click",
+  ccalo.editor.saveContentTime_ = document.getElementById('save-content-ts');
+  ccalo.editor.saveContentTitle_ =
+      document.getElementById('save-content-title');
+
+  goog.events.listen(ccalo.editor.saveContentBtn_, 'click',
       ccalo.editor.handleSaveContent_, false, ccalo.editor);
 
   ccalo.editor.updatePreview();
 
+  ccalo.editor.saveContentBtn_.disabled = true;
+  ccalo.editor.editor.autoSaveTimeout_ = undefined;
+  ccalo.editor.editor.ace_.getSession().on('change',
+      ccalo.editor.onFormDataChange_);
+  ccalo.editor.saveContentTitle_.onchange = ccalo.editor.onFormDataChange_;
 };
 
-ccalo.editor.handleSaveContent_ = function(e) {
-  this.saveContentForm_.submit();
+ccalo.editor.onFormDataChange_ = function() {
+  ccalo.editor.saveContentBtn_.disabled = false;
+  if (ccalo.editor.editor.autoSaveTimeout_) {
+    window.clearTimeout(ccalo.editor.editor.autoSaveTimeout_);
+  }
+  ccalo.editor.editor.autoSaveTimeout_ = window.setTimeout(function(){
+    ccalo.editor.handleSaveContent_();
+  }, 1500);
+};
+
+ccalo.editor.handleSaveContent_ = function(opt_e) {
+  if (ccalo.editor.editor.autoSaveTimeout_) {
+    window.clearTimeout(ccalo.editor.editor.autoSaveTimeout_);
+  }
+  ccalo.editor.saveContentBtn_.value = 'Saving ...';
+  //this.saveContentForm_.submit();
+  goog.net.XhrIo.send(
+    ccalo.editor.saveContentForm_.action,
+    ccalo.editor.editor.saveCallback_,
+    ccalo.editor.saveContentForm_.method,
+    goog.dom.forms.getFormDataString(ccalo.editor.saveContentForm_)
+  );
+  if (opt_e) {
+    opt_e.preventDefault();
+  }
 };
 
 ccalo.editor.loadDoc = function () {
@@ -122,6 +155,13 @@ ccalo.editor.Editor = function (element) {
   document.getElementById('editor-ace').style.fontSize = '14px';
   document.getElementById('editor-ace').style.visibility = 'visible';
   this.ace_ = aceEditor;
+};
+
+ccalo.editor.Editor.prototype.saveCallback_ = function(foo) {
+  ccalo.editor.saveContentBtn_.value = 'Save';
+  ccalo.editor.saveContentBtn_.disabled = true;
+  ccalo.editor.saveContentTime_.innerHTML = 'Last saved: ' +
+      (new Date()).toString();
 };
 
 ccalo.editor.Editor.prototype.getText = function () {

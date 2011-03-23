@@ -155,18 +155,10 @@ class EditorHandler(RequestHandler):
       'key': prototype.key(),
       'continue': self.request.path,
       'user_nickname': nickname,
-      'content': prototype.content
+      'content': prototype.content,
+      'title': prototype.name
     }
     self.RenderTemplateOut('editor.html', template_vars)
-
-
-def ParseTitleFromContent(content):
-  title = None
-  match = re.search('title>([^<]+)<\\/title', content)
-  if match:
-    title = match.group(1)
-  logging.info('title: %s' % title)
-  return title
 
 
 class SaveHandler(RequestHandler):
@@ -180,6 +172,7 @@ class SaveHandler(RequestHandler):
 
     user = users.get_current_user()
     content = self.request.get('content')
+    title = self.request.get('title')
 
     logging.info('key: %s, content: %s, path: %s' % (key, content,
         self.request.path))
@@ -194,7 +187,7 @@ class SaveHandler(RequestHandler):
         self.error(503)
         return self.response.out.write('You do not own this prototype.')
       prototype.content = content
-      prototype.name = ParseTitleFromContent(content)
+      prototype.name = title
     else:
       prototype = Prototype(content=content, user=user)
     prototype.put()

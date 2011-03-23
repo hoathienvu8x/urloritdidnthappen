@@ -13,59 +13,63 @@
   <body{% if pagename %} class="{{ pagename }}-body"{% endif %}>
 
     <div class="editor-chrome">
-      <div class="editor-chrome-header">
-        <h1>
-          <a href="/">URL or it didn't happen</a>
-        </h1>
+      <form method="POST" action="/save/{{ key }}" id="save-content-form">
+        <input type="hidden" name="continue" value="{{ continue }}">
+        <textarea id="save-content" name="content"
+          style="display:none">{{ content }}</textarea>
+        <div class="editor-chrome-header">
+          <h1>
+            <a href="/">URL or it didn't happen</a>
+            <input name="title" id="save-content-title"
+              value="{% if title %}{{ title }}{% else %}Untitled{% endif %}">
+          </h1>
 
-        {% if sample_templates %}
-          <div id="editor-load-template" class="menu-button-container">
-            <button id="editor-load-template-btn"
-              class="menu-button">+Template</button>
-            <ul class="menu-button-menu">
-              {% for template in sample_templates %}
-                <li data-template-url="{{ template.url }}" class="menu-item">
-                  {{ template.name }}
+          {% if sample_templates %}
+            <div id="editor-load-template" class="menu-button-container">
+              <button id="editor-load-template-btn"
+                class="menu-button">+Template</button>
+              <ul class="menu-button-menu">
+                {% for template in sample_templates %}
+                  <li data-template-url="{{ template.url }}" class="menu-item">
+                    {{ template.name }}
+                  </li>
+                {% endfor %}
+                <li>
+                  <label for="editor-load-template-url">URL:</label>
+                  <input type="text" id="editor-load-template-url">
+                  <button type="button" id="editor-load-template-url-btn"
+                    >Load</button>
                 </li>
-              {% endfor %}
-              <li>
-                <label for="editor-load-template-url">URL:</label>
-                <input type="text" id="editor-load-template-url">
-                <button type="button" id="editor-load-template-url-btn"
-                  >Load</button>
-              </li>
-            </ul>
-          </div>
-        {% endif %}
+              </ul>
+            </div>
+          {% endif %}
 
-        <div class="editor-chrome-header-links">
-          <form method="post" action="/save/{{ key }}" id="save-content-form">
-            <input type="hidden" name="continue" value="{{ continue }}">
-            <textarea id="save-content" name="content"
-              style="display:none">{{ content }}</textarea>
+          <div class="editor-chrome-header-links">
+            <span id="save-content-ts"></span>
             <input id="save-content-btn" type="submit" value="save">
-          </form>
-          <a href="/mine">{{ user_nickname }}</a>
-          <a href="/1">About</a>
+            <a href="/mine">{{ user_nickname }}</a>
+            <a href="/1">About</a>
+          </div>
         </div>
-      </div>
+      </form>
       {% if pagename %}<div class="{{ pagename }}-content">{% endif %}
       {% block body %}{% endblock %}
       {% if pagename %}</div>{% endif %}
     </div>
 
-
-    <script>
-      var _gaq = [['_setAccount', 'UA-21455401-1'], ['_trackPageview']];
-      (function(d, t) {
-        var g = d.createElement(t),
-            s = d.getElementsByTagName(t)[0];
-        g.async = true;
-        g.src = ('https:' == location.protocol ? 'https://ssl' :
-            'http://www') + '.google-analytics.com/ga.js';
-        s.parentNode.insertBefore(g, s);
-      })(document, 'script');
-   </script>
+    {% if is_production %}
+      <script>
+        var _gaq = [['_setAccount', 'UA-21455401-1'], ['_trackPageview']];
+        (function(d, t) {
+          var g = d.createElement(t),
+              s = d.getElementsByTagName(t)[0];
+          g.async = true;
+          g.src = ('https:' == location.protocol ? 'https://ssl' :
+              'http://www') + '.google-analytics.com/ga.js';
+          s.parentNode.insertBefore(g, s);
+        })(document, 'script');
+     </script>
+   {% endif %}
   </body>
 </html>
 
