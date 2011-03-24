@@ -189,7 +189,8 @@ a:hover {
 .mine-body {
   background: #ccc;
 }
-.mine-body #save-content-form {
+.mine-body input,
+.mine-body #save-content-forkwarn {
   display: none;
 }
 .mine-content {
