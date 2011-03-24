@@ -44,7 +44,7 @@ a:hover {
 .editor-chrome-header {
   overflow: hidden;
   -webkit-box-flex: 0;
-  background: #999;
+  background: #666;
   color: #fff;
   font-weight: bold;
   padding: 0.25em 0.5em;
@@ -234,7 +234,30 @@ a:hover {
   cursor: pointer;
 }
 
-#save-content-ts {
-  font-size: 90%;
+#save-content-title {
+  border: 0;
+  color: darkorange;
+  font-size: 110%;
+  background: transparent;
+  margin: 1px 0 0 1em;
+  padding: 1px;
+  font-weight: bold;
+}
+
+#save-content-title:focus {
+  border: 1px outset #ccc;
+  background: #fff;
   font-weight: normal;
+  margin: 0 0 0 1em;
+}
+
+#save-content-ts {
+  font-size: 87%;
+  font-weight: normal;
+  border-radius: 2px;
+  padding: 1px 5px;
+}
+
+#editor-ace .ace_gutter {
+  width: 35px;
 }

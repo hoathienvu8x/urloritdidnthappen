@@ -13,15 +13,21 @@
   <body{% if pagename %} class="{{ pagename }}-body"{% endif %}>
 
     <div class="editor-chrome">
-      <form method="POST" action="/save/{{ key }}" id="save-content-form">
+      <form method="POST" id="save-content-form"
+        {% if is_owner %}
+          action="/save/{{ prototype.key }}"
+        {% else %}
+          action="/fork/{{ prototype.key }}"
+        {% endif %}
+        >
         <input type="hidden" name="continue" value="{{ continue }}">
         <textarea id="save-content" name="content"
-          style="display:none">{{ content }}</textarea>
+          style="display:none">{{ prototype.content }}</textarea>
         <div class="editor-chrome-header">
           <h1>
-            <a href="/">URL or it didn't happen</a>
+            <a href="/">codebin</a>
             <input name="title" id="save-content-title"
-              value="{% if title %}{{ title }}{% else %}Untitled{% endif %}">
+              value="{% if prototype.title %}{{ prototype.title }}{% else %}Untitled{% endif %}">
           </h1>
 
           {% if sample_templates %}
@@ -45,10 +51,18 @@
           {% endif %}
 
           <div class="editor-chrome-header-links">
-            <span id="save-content-ts"></span>
-            <input id="save-content-btn" type="submit" value="save">
+            {% if is_owner %}
+              <span id="save-content-ts"></span>
+              <input id="save-content-btn" type="submit" value="Save">
+            {% else %}
+              <strong>
+                You're editing someone else's prototype -
+                click Fork to save.
+              </strong>
+              <input type="submit" value="Fork">
+            {% endif %}
             <a href="/mine">{{ user_nickname }}</a>
-            <a href="/1">About</a>
+            <a href="/1">about</a>
           </div>
         </div>
       </form>

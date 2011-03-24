@@ -39,10 +39,8 @@ from django.utils import simplejson
 #### DB MODELS ####
 class Prototype(db.Model):
   user = db.UserProperty(required=True)
-  forked_key = db.IntegerProperty()
-  auto_refresh = db.BooleanProperty(default=True)
-  auto_save = db.BooleanProperty(default=True)
-  name = db.StringProperty()
+  fork_from = db.SelfReferenceProperty()
+  title = db.StringProperty()
   content = db.TextProperty()
   created = db.DateTimeProperty(auto_now_add=True)
   modified = db.DateTimeProperty(auto_now=True)
@@ -75,6 +73,9 @@ class RequestHandler(webapp.RequestHandler):
     self.response.out.write(template.render('templates/%s' % template_name,
                                             template_vars))
 
+  def IsXhr(self):
+    return self.request.headers.get('X-Requested-With') == 'XMLHttpRequest'
+
 def FetchPrototype(key):
   key = str(key)
   if len(key) > 30:
@@ -93,15 +94,15 @@ class EditorHandler(RequestHandler):
     domain = re.sub(r'^[^@]+@', '', user.email())
 
     # Removes any leading and trailing slashes.
-    logging.info('path: %s' % self.request.path)
     path_trimmed = re.sub('^\\/|\\/$', '', self.request.path)
-    logging.info('path_trimmed: %s' % path_trimmed)
     path_bits = path_trimmed.split('/')
-    logging.info('path_bits: %s' % path_bits)
 
+    # Creates a new blank prototype.
     if path_trimmed == '' or len(path_bits) == 0:
       prototype = Prototype(user=user, content='')
       prototype.put()
+      # TODO(elsigh): Create a task that would run in a few hours and delete
+      # this entity if the user saves no content to it.
       return self.redirect('/%s' % str(prototype.key().id()))
 
     # Owner or else fork.
@@ -113,52 +114,46 @@ class EditorHandler(RequestHandler):
         self.error(404)
         return self.response.out.write('There is no prototype for key: %s' %
                                        key)
-      # Fork.
-      if prototype.user != user and len(path_bits) == 1:
-        # Have they already made a fork of this?
-        query = Prototype.all()
-        query.filter('forked_key =', int(key))
-        query.filter('user =', user)
-        forked_prototype = query.get()
-        if forked_prototype:
-          self.redirect('/%s/%s' % (key, nickname))
-        else:
-          logging.info('Student fork.')
-          new_prototype = Prototype(user=user, content=prototype.content,
-                                    forked_key=int(key))
-          new_prototype.put()
-          return self.redirect('/%s/%s' % (key, nickname))
-
-
-    # Student.
-    elif len(path_bits) == 2:
-      forked_key = int(path_bits[0])
-      path_user = path_bits[1]
-      # Assumes same domain for users in the system..
-      user_prop = users.User('%s@%s' % (path_user, domain))
-      query = Prototype.all()
-      query.filter('forked_key =', forked_key)
-      query.filter('user =', user_prop)
-      prototype = query.get()
-      if not prototype:
-        self.error(404)
-        return self.response.out.write('There is no prototype for this url.')
-
-      # Fork from student created prototype.
-      if nickname != path_user:
-        logging.info('Fork from student created prototype')
-        new_prototype = Prototype(user=user, content=prototype.content)
-        new_prototype.put()
-        return self.redirect('/%s' % new_prototype.key().id())
-
     template_vars = {
-      'key': prototype.key(),
-      'continue': self.request.path,
       'user_nickname': nickname,
-      'content': prototype.content,
-      'title': prototype.name
+      'continue': self.request.path,
+      'prototype': prototype,
+      'is_owner': prototype.user == user
     }
     self.RenderTemplateOut('editor.html', template_vars)
+
+
+class ForkHandler(RequestHandler):
+  def post(self):
+    try:
+      # 6 here is the len('/fork/')
+      key = self.request.path[6:]
+    except e:
+      self.error(404)
+      return self.response.out.write('Cowardly refusal to send a key.')
+
+    try:
+      fork_from = FetchPrototype(key)
+    except ValueError:
+      self.error(404)
+      return self.response.out.write('There is no prototype for key: %s' %
+                                     key)
+
+    user = users.get_current_user()
+    title = self.request.get('title')
+    content = self.request.get('content')
+    logging.info('key: %s, title: %s, content: %s' %(key, title, content))
+
+    # Can't use the login_required decorator for POST.
+    if user is None:
+      self.error(503)
+      return self.response.out.write('Cowardly refusal to be logged in.')
+
+    prototype = Prototype(user=user, fork_from=fork_from, title=title,
+                          content=content)
+    prototype.put()
+
+    self.redirect('/%s' % str(prototype.key().id()))
 
 
 class SaveHandler(RequestHandler):
@@ -167,34 +162,38 @@ class SaveHandler(RequestHandler):
       # 6 here is the len('/save/')
       key = self.request.path[6:]
     except e:
-      logging.info('error parsing key: %s' % e)
-      key = None
+      self.error(503)
+      return self.response.out.write('Cowardly refusal to be logged in.')
 
     user = users.get_current_user()
-    content = self.request.get('content')
     title = self.request.get('title')
+    content = self.request.get('content')
+    logging.info('key: %s, title: %s, content: %s' % (key, title, content))
 
-    logging.info('key: %s, content: %s, path: %s' % (key, content,
-        self.request.path))
-
+    # Can't use the login_required decorator for POST.
     if user is None:
       self.error(503)
       return self.response.out.write('Cowardly refusal to be logged in.')
 
-    if key:
-      prototype = FetchPrototype(key)
-      if prototype.user != user:
-        self.error(503)
-        return self.response.out.write('You do not own this prototype.')
-      prototype.content = content
-      prototype.name = title
-    else:
-      prototype = Prototype(content=content, user=user)
+    prototype = FetchPrototype(key)
+    if not prototype:
+      self.error(404)
+      return self.response.out.write('There is no prototype for key: %s' %
+                                     key)
+    if prototype.user != user:
+      self.error(503)
+      return self.response.out.write('You do not own this prototype.')
+    prototype.content = content
+    prototype.title = title
     prototype.put()
 
-    continue_path = self.request.get('continue',
-        '/%s' % str(prototype.key().id()))
-    self.redirect(continue_path)
+    if self.IsXhr():
+      self.response.set_status(204)
+      return self.response.out.write('')
+    else:
+      continue_path = self.request.get('continue',
+          '/%s' % str(prototype.key().id()))
+      self.redirect(continue_path)
 
 
 class MineHandler(RequestHandler):
@@ -248,6 +247,7 @@ class ProxyHandler(RequestHandler):
 def main():
   application = webapp.WSGIApplication(
                                        [(r'/save/.*', SaveHandler),
+                                        (r'/fork/.*', ForkHandler),
                                         (r'/render/.*', RenderHandler),
                                         (r'/mine', MineHandler),
                                         (r'/proxy', ProxyHandler),
