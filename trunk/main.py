@@ -105,15 +105,12 @@ class EditorHandler(RequestHandler):
       # this entity if the user saves no content to it.
       return self.redirect('/%s' % str(prototype.key().id()))
 
-    # Owner or else fork.
-    if len(path_bits) == 1:
-      key = path_bits[0]
-      try:
-        prototype = FetchPrototype(key)
-      except ValueError:
-        self.error(404)
-        return self.response.out.write('There is no prototype for key: %s' %
-                                       key)
+    key = path_bits[0]
+    prototype = FetchPrototype(key)
+    if not prototype:
+      self.error(404)
+      return self.response.out.write('There is no prototype for key: %s' %
+                                     key)
     template_vars = {
       'user_nickname': nickname,
       'continue': self.request.path,
@@ -132,9 +129,8 @@ class ForkHandler(RequestHandler):
       self.error(404)
       return self.response.out.write('Cowardly refusal to send a key.')
 
-    try:
-      fork_from = FetchPrototype(key)
-    except ValueError:
+    fork_from = FetchPrototype(key)
+    if not fork_from:
       self.error(404)
       return self.response.out.write('There is no prototype for key: %s' %
                                      key)

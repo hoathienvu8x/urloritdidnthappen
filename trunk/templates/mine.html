@@ -23,7 +23,11 @@
           <div>created {{ prototype.created }}</div>
           <div>modified {{ prototype.modified }}</div>
           {% if prototype.fork_from %}
-            <div>forked from <a href=""></a></div>
+            <div>
+              forked from
+              <a href="/{{ prototype.fork_from.key }}"
+                >{{ prototype.fork_from.title }}</a>
+            </div>
           {% endif %}
         </small>
       </li>

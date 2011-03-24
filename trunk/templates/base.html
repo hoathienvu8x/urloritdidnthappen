@@ -26,8 +26,17 @@
         <div class="editor-chrome-header">
           <h1>
             <a href="/">codebin</a>
-            <input name="title" id="save-content-title"
-              value="{% if prototype.title %}{{ prototype.title }}{% else %}Untitled{% endif %}">
+            {% if is_owner %}
+              <input name="title" id="save-content-title"
+                value="{{ prototype.title }}">
+            {% else %}
+              <span id="view-content-title">{{ prototype.title }}</span>
+              <input type="submit" value="Fork →">
+              <strong id="save-content-forkwarn">
+                You're editing someone else's prototype,
+                fork if you want to save changes.
+              </strong>
+            {% endif %}
           </h1>
 
           {% if sample_templates %}
@@ -55,11 +64,6 @@
               <span id="save-content-ts"></span>
               <input id="save-content-btn" type="submit" value="Save">
             {% else %}
-              <strong id="save-content-forkwarn">
-                You're editing someone else's prototype -
-                click Fork to save.
-              </strong>
-              <input type="submit" value="Fork">
             {% endif %}
 
             {% if user %}
