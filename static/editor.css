@@ -235,6 +235,7 @@ a:hover {
   cursor: pointer;
 }
 
+#view-content-title,
 #save-content-title {
   border: 0;
   color: darkorange;
@@ -250,6 +251,10 @@ a:hover {
   background: #fff;
   font-weight: normal;
   margin: 0 0 0 1em;
+}
+
+#view-content-title {
+  margin-right: 1em;
 }
 
 #save-content-ts {
