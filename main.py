@@ -40,7 +40,7 @@ from django.utils import simplejson
 class Prototype(db.Model):
   user = db.UserProperty(required=True)
   fork_from = db.SelfReferenceProperty()
-  title = db.StringProperty()
+  title = db.StringProperty(default='Untitled')
   content = db.TextProperty()
   created = db.DateTimeProperty(auto_now_add=True)
   modified = db.DateTimeProperty(auto_now=True)
