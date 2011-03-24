@@ -26,6 +26,8 @@ ccalo.assert = function (object) {
   }
 };
 
+ccalo.XHR_HEADER = {'X-Requested-With': 'XMLHttpRequest'};
+
 /**
  * Initializes the prototype by loading a document into the editor and setting
  * up event listeners.
@@ -49,16 +51,19 @@ ccalo.editor.init = function () {
   ccalo.editor.saveContentTitle_ =
       document.getElementById('save-content-title');
 
-  goog.events.listen(ccalo.editor.saveContentBtn_, 'click',
-      ccalo.editor.handleSaveContent_, false, ccalo.editor);
+  // If we can "save" and not fork, set up auto-save behavior.
+  if (ccalo.editor.saveContentBtn_) {
+    goog.events.listen(ccalo.editor.saveContentBtn_, 'click',
+        ccalo.editor.handleSaveContent_, false, ccalo.editor);
+    ccalo.editor.saveContentBtn_.disabled = true;
+    ccalo.editor.editor.autoSaveTimeout_ = undefined;
+    ccalo.editor.editor.ace_.getSession().on('change',
+        ccalo.editor.onFormDataChange_);
+    ccalo.editor.saveContentTitle_.onchange = ccalo.editor.onFormDataChange_;
+  }
 
   ccalo.editor.updatePreview();
 
-  ccalo.editor.saveContentBtn_.disabled = true;
-  ccalo.editor.editor.autoSaveTimeout_ = undefined;
-  ccalo.editor.editor.ace_.getSession().on('change',
-      ccalo.editor.onFormDataChange_);
-  ccalo.editor.saveContentTitle_.onchange = ccalo.editor.onFormDataChange_;
 };
 
 ccalo.editor.onFormDataChange_ = function() {
@@ -68,7 +73,7 @@ ccalo.editor.onFormDataChange_ = function() {
   }
   ccalo.editor.editor.autoSaveTimeout_ = window.setTimeout(function(){
     ccalo.editor.handleSaveContent_();
-  }, 1500);
+  }, 1000);
 };
 
 ccalo.editor.handleSaveContent_ = function(opt_e) {
@@ -76,12 +81,12 @@ ccalo.editor.handleSaveContent_ = function(opt_e) {
     window.clearTimeout(ccalo.editor.editor.autoSaveTimeout_);
   }
   ccalo.editor.saveContentBtn_.value = 'Saving ...';
-  //this.saveContentForm_.submit();
   goog.net.XhrIo.send(
     ccalo.editor.saveContentForm_.action,
     ccalo.editor.editor.saveCallback_,
     ccalo.editor.saveContentForm_.method,
-    goog.dom.forms.getFormDataString(ccalo.editor.saveContentForm_)
+    goog.dom.forms.getFormDataString(ccalo.editor.saveContentForm_),
+    ccalo.XHR_HEADER
   );
   if (opt_e) {
     opt_e.preventDefault();
@@ -142,7 +147,7 @@ ccalo.editor.Preview.prototype.setContent = function (content) {
 ccalo.editor.Editor = function (element) {
   element.setAttribute('class', 'editor-doc');
   var aceEditor = ace.edit('editor-ace');
-  aceEditor.setTheme('ace/theme/twilight');
+  aceEditor.setTheme('ace/theme/eclipse');
   aceEditor.getSession().setTabSize(2);
   aceEditor.getSession().setUseSoftTabs(true);
 
@@ -157,11 +162,26 @@ ccalo.editor.Editor = function (element) {
   this.ace_ = aceEditor;
 };
 
-ccalo.editor.Editor.prototype.saveCallback_ = function(foo) {
-  ccalo.editor.saveContentBtn_.value = 'Save';
-  ccalo.editor.saveContentBtn_.disabled = true;
-  ccalo.editor.saveContentTime_.innerHTML = 'Last saved: ' +
-      (new Date()).toString();
+ccalo.editor.Editor.prototype.saveCallback_ = function(e) {
+  var xhr = e.currentTarget;
+  if (xhr.isSuccess()) {
+    ccalo.editor.saveContentBtn_.value = 'Save';
+    ccalo.editor.saveContentBtn_.disabled = true;
+
+    ccalo.editor.saveContentTime_.innerHTML = 'Last saved: ' +
+        (new Date()).toString();
+    ccalo.editor.saveContentTime_.style.setProperty('-webkit-transition',
+        'background 0s ease-in');
+    ccalo.editor.saveContentTime_.style.background = '#999';
+    window.setTimeout(function() {
+      ccalo.editor.saveContentTime_.style.setProperty('-webkit-transition',
+          'background 0.5s ease-in');
+      ccalo.editor.saveContentTime_.style.background = '';
+    }, 250);
+
+  } else {
+    alert('Crappity crap crap, saving is broken. Email ux-webdev@');
+  }
 };
 
 ccalo.editor.Editor.prototype.getText = function () {
@@ -177,7 +197,7 @@ ccalo.editor.Editor.prototype.setText = function (text) {
 
 ccalo.editor.Editor.prototype.loadFromUrl = function (url, callback) {
   var handler = goog.bind(this.handleLoadFromUrl, this, callback);
-  goog.net.XhrIo.send(url, handler);
+  goog.net.XhrIo.send(url, handler, null, null, ccalo.XHR_HEADER);
 };
 
 ccalo.editor.Editor.prototype.handleLoadFromUrl = function (callback, e) {
@@ -192,8 +212,3 @@ ccalo.editor.Editor.prototype.handleLoadFromUrl = function (callback, e) {
 window.onload = function() {
   ccalo.editor.init();
 };
-/*
-window['onBespinLoad'] = function() {
-  ccalo.editor.init();
-};
-*/

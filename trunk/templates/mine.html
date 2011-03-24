@@ -2,6 +2,7 @@
 
 {% block body %}
 
+<a href="{{ logout_url }}" style="float:right">Sign out</a>
 <h2>Prototypes by {{ user }}</h2>
 
 {% if prototypes %}
@@ -11,8 +12,8 @@
         <div>
           <a href="/{{ prototype.key.id}}">{% spaceless %}
             <strong>
-            {% if prototype.name %}
-              {{ prototype.name }}
+            {% if prototype.title %}
+              {{ prototype.title }}
             {% else %}
               {{ prototype.key.id }}
             {% endif %}
@@ -22,6 +23,9 @@
         <small>
           <div>created {{ prototype.created }}</div>
           <div>modified {{ prototype.modified }}</div>
+          {% if prototype.fork_from %}
+            <div>forked from <a href=""></a></div>
+          {% endif %}
         </small>
       </li>
     {% endfor %}
