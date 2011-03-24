@@ -55,14 +55,19 @@
               <span id="save-content-ts"></span>
               <input id="save-content-btn" type="submit" value="Save">
             {% else %}
-              <strong>
+              <strong id="save-content-forkwarn">
                 You're editing someone else's prototype -
                 click Fork to save.
               </strong>
               <input type="submit" value="Fork">
             {% endif %}
-            <a href="/mine">{{ user_nickname }}</a>
-            <a href="/1">about</a>
+
+            {% if user %}
+              <a href="/mine">{{ user_nickname }}</a>
+              <a href="{{ logout_url }}">Sign out</a>
+            {% else %}
+              <a href="{{ login_url }}">Sign in</a>
+            {% endif %}
           </div>
         </div>
       </form>
