@@ -63,8 +63,8 @@
             {% if is_owner %}
               <span id="save-content-ts"></span>
               <input id="save-content-btn" type="submit" value="Save">
-            {% else %}
             {% endif %}
+            <a href="/render/{{ prototype.key }}" target="_blank">view→</a>
 
             {% if user %}
               <a href="/mine">{{ user_nickname }}</a>

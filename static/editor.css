@@ -244,6 +244,7 @@ a:hover {
   margin: 1px 0 0 1em;
   padding: 1px;
   font-weight: bold;
+  width: 300px;
 }
 
 #save-content-title:focus {
