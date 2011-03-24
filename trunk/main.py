@@ -136,15 +136,14 @@ class ForkHandler(RequestHandler):
                                      key)
 
     user = users.get_current_user()
-    title = self.request.get('title')
     content = self.request.get('content')
-    logging.info('key: %s, title: %s, content: %s' %(key, title, content))
 
     # Can't use the login_required decorator for POST.
     if user is None:
       self.error(503)
       return self.response.out.write('Cowardly refusal to be logged in.')
 
+    title = 'Fork of %s' % fork_from.title
     prototype = Prototype(user=user, fork_from=fork_from, title=title,
                           content=content)
     prototype.put()
