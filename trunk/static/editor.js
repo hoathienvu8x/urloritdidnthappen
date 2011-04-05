@@ -108,11 +108,16 @@ ccalo.editor.getSourceName = function () {
   return uri.getQueryData().get("name", "").replace("../", "");
 };
 
+
 /**
  * Loads what's in the editor into the preview pane.
  */
 ccalo.editor.updatePreview = function () {
   var content = this.editor.getText();
+
+
+  // TODO(elsigh): Test if we're inside a script tag.
+
   ccalo.editor.editor.saveContent_.value = content;
   this.preview.setContent(content);
 };
@@ -134,8 +139,8 @@ ccalo.editor.Preview.prototype.getDocument = function (element) {
 };
 
 ccalo.editor.Preview.prototype.setContent = function (content) {
+  window.console.log('content', content);
   var writer = this.getDocument();
-
   writer.open();
   writer.write(content);
   writer.close();

@@ -18,6 +18,7 @@
             {% endif %}
             </strong>
           {% endspaceless %}</a>
+
         </div>
         <small>
           <div>created {{ prototype.created }}</div>
@@ -29,6 +30,14 @@
                 >{{ prototype.fork_from.title }}</a>
             </div>
           {% endif %}
+          <div>
+            <form action="/delete/{{ prototype.key.id}}" method="post"
+              onsubmit="return confirm('Are you sure?');">
+              <input type="hidden" name="continue" value="/mine">
+              <button type="submit"
+                style="color:red">Delete</button>
+            </form>
+          </div>
         </small>
       </li>
     {% endfor %}
