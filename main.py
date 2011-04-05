@@ -27,6 +27,7 @@ import wsgiref.handlers
 
 from google.appengine.api import urlfetch
 from google.appengine.api import users
+from google.appengine.api.labs import taskqueue
 
 from google.appengine.ext import db
 from google.appengine.ext import webapp
@@ -35,6 +36,7 @@ from google.appengine.ext.webapp.util import login_required
 
 from django.utils import simplejson
 
+CLEANUP_TIMEOUT = 10800  # 3 hours in seconds.
 
 #### DB MODELS ####
 class Prototype(db.Model):
@@ -76,12 +78,40 @@ class RequestHandler(webapp.RequestHandler):
   def IsXhr(self):
     return self.request.headers.get('X-Requested-With') == 'XMLHttpRequest'
 
+
 def FetchPrototype(key):
   key = str(key)
   if len(key) > 30:
     return db.get(key)
   else:
     return db.get(db.Key.from_path('Prototype', int(key)))
+
+
+def MoarRobustTaskQueue(url, params={}, countdown=0):
+  """Attempts to prevent taskqueue.add from throwing TransientError.
+  When BigTable is a suckin, this is the error that's thrown.
+  It can be somewhat mitigated by trying taskqueue operations thrice.
+
+  Args:
+    url: The url of the taskqueue handler.
+    queue_name: The name of the queue.
+    params: A dict of data to pass to the handler.
+    countdown: Number of seconds into the future that this Task should execute,
+               measured from time of insertion.
+  """
+  attempt = 0
+  while attempt < 3:
+    logging.info(
+          'Try with taskqueue.add (attempt %s): %s, %s, %s' %
+          (attempt, url, params, countdown))
+    try:
+      taskqueue.add(url=url, params=params, countdown=countdown)
+      break
+    except taskqueue.TransientError:
+      attempt += 1
+      logging.info(
+          'TransientError with taskqueue.add (attempt %s): %s, %s, %s' %
+          (attempt, url, params, countdown))
 
 
 #### HANDLERS ####
@@ -101,8 +131,13 @@ class EditorHandler(RequestHandler):
     if path_trimmed == '' or len(path_bits) == 0:
       prototype = Prototype(user=user, content='')
       prototype.put()
-      # TODO(elsigh): Create a task that would run in a few hours and delete
+      # Creates a task that would run in a few hours and delete
       # this entity if the user saves no content to it.
+      key = prototype.key().id()
+      params = {'key': key}
+      MoarRobustTaskQueue(url='/_ah/queue/cleanup/%s' % key,
+                          params=params,
+                          countdown=CLEANUP_TIMEOUT)
       return self.redirect('/%s' % str(prototype.key().id()))
 
     key = path_bits[0]
@@ -158,7 +193,7 @@ class SaveHandler(RequestHandler):
       key = self.request.path[6:]
     except e:
       self.error(503)
-      return self.response.out.write('Cowardly refusal to be logged in.')
+      return self.response.out.write('Cowardly refusal to send a key.')
 
     user = users.get_current_user()
     title = self.request.get('title')
@@ -206,6 +241,47 @@ class MineHandler(RequestHandler):
     self.RenderTemplateOut('mine.html', template_vars)
 
 
+class DeleteHandler(RequestHandler):
+  def post(self):
+    try:
+      # 8 here is the len('/delete/')
+      key = self.request.path[8:]
+    except e:
+      self.error(503)
+      return self.response.out.write('Cowardly refusal to send a key.')
+
+    prototype = FetchPrototype(key)
+    if not prototype:
+      self.error(404)
+      return self.response.out.write('There is no prototype for key: %s' %
+                                     key)
+    user = users.get_current_user()
+    if prototype.user != user and not user.is_current_user_admin():
+      self.error(503)
+      return self.response.out.write('You do not own this prototype.')
+
+    prototype.delete()
+    continue_path = self.request.get('continue', '/')
+    self.redirect(continue_path)
+
+
+class CleanupHandler(RequestHandler):
+  def post(self):
+    key = self.request.get('key')
+    prototype = FetchPrototype(key)
+    if not prototype:
+      self.error(200)
+      return self.response.out.write('There is no prototype for key: %s' %
+                                     key)
+
+    if prototype.title == 'Untitled' and prototype.content == '':
+      prototype.delete()
+      logging.info('Yay, deleted a wasteful prototype.')
+
+    self.response.set_status(200)
+    return self.response.out.write('')
+
+
 class RenderHandler(RequestHandler):
   """Renders the raw html straight away, sans editor."""
   @login_required
@@ -241,14 +317,16 @@ class ProxyHandler(RequestHandler):
 
 def main():
   application = webapp.WSGIApplication(
-                                       [(r'/save/.*', SaveHandler),
-                                        (r'/fork/.*', ForkHandler),
-                                        (r'/render/.*', RenderHandler),
-                                        (r'/mine', MineHandler),
-                                        (r'/proxy', ProxyHandler),
-                                        (r'/logout', LogOutHandler),
-                                        (r'/.*', EditorHandler),],
-                                       debug=True)
+    [(r'/_ah/queue/cleanup/.*', CleanupHandler),
+     (r'/save/.*', SaveHandler),
+     (r'/fork/.*', ForkHandler),
+     (r'/render/.*', RenderHandler),
+     (r'/mine', MineHandler),
+     (r'/proxy', ProxyHandler),
+     (r'/logout', LogOutHandler),
+     (r'/delete/.*', DeleteHandler),
+     (r'/.*', EditorHandler),],
+     debug=True)
   wsgiref.handlers.CGIHandler().run(application)
 
 if __name__ == "__main__":

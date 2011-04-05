@@ -64,7 +64,10 @@
               <span id="save-content-ts"></span>
               <input id="save-content-btn" type="submit" value="Save">
             {% endif %}
-            <a href="/render/{{ prototype.key }}" target="_blank">view→</a>
+
+            {% if prototype %}
+              <a href="/render/{{ prototype.key.id }}" target="_blank">view→</a>
+            {% endif %}
 
             {% if user %}
               <a href="/mine">{{ user_nickname }}</a>
