@@ -29,6 +29,16 @@ ccalo.assert = function (object) {
 ccalo.XHR_HEADER = {'X-Requested-With': 'XMLHttpRequest'};
 
 /**
+ * @enum {string}
+ */
+ccalo.editor.Text = {
+  SAVE: 'Save',
+  SAVING: 'Saving ...',
+  REFRESH: 'Refresh (Ctrl+R)'
+};
+
+
+/**
  * Initializes the prototype by loading a document into the editor and setting
  * up event listeners.
  */
@@ -59,28 +69,81 @@ ccalo.editor.init = function () {
     ccalo.editor.editor.autoSaveTimeout_ = undefined;
     ccalo.editor.editor.ace_.getSession().on('change',
         ccalo.editor.onFormDataChange_);
-    ccalo.editor.saveContentTitle_.onchange = ccalo.editor.onFormDataChange_;
+    goog.events.listen(window, 'keydown',
+        ccalo.editor.handleKeyDown_, false, ccalo.editor);
+
+    goog.events.listen(ccalo.editor.saveContentTitle_, 'blur',
+        ccalo.editor.handleSaveContent_, false, ccalo.editor);
+
   }
 
-  ccalo.editor.updatePreview();
+  ccalo.editor.dealWithContent_();
+  ccalo.editor.updatePreview();  // always do it initially.
+};
+
+
+/**
+ * @param {goog.events.Event} e
+ * @private
+ */
+ccalo.editor.handleKeyDown_ = function(e) {
+  //window.console.log('keydown', e, e.charCode, e.ctrlKey, e.keyCode);
+
+  // F5 or Ctrl + r
+  if (e.keyCode == 116 || (e.ctrlKey && e.charCode == 18) ||
+      (e.ctrlKey && e.keyCode == 82)) {
+    ccalo.editor.updatePreview();
+    e.preventDefault();
+    e.stopPropagation();
+
+  // Save
+  } else if (e.ctrlKey && (e.charCode == 115 || e.keyCode == 83)) {
+    ccalo.editor.handleSaveContent_();
+    e.preventDefault();
+    e.stopPropagation();
+  }
 
 };
 
-ccalo.editor.onFormDataChange_ = function() {
+
+ccalo.editor.dealWithContent_ = function() {
+  var content = ccalo.editor.editor.getText();
+  ccalo.editor.editor.saveContent_.value = content;
   ccalo.editor.saveContentBtn_.disabled = false;
+
+  // auto update if no scripts on page.
+  if (content.indexOf('<script') == -1) {
+    ccalo.editor.saveContentBtn_.value = ccalo.editor.Text.SAVE;
+    ccalo.editor.autoUpdate = true;
+    ccalo.editor.updatePreview();
+  } else {
+    ccalo.editor.autoUpdate = false;
+    ccalo.editor.saveContentBtn_.value = ccalo.editor.Text.REFRESH;
+  }
+};
+
+ccalo.editor.onFormDataChange_ = function() {
+  ccalo.editor.dealWithContent_();
   if (ccalo.editor.editor.autoSaveTimeout_) {
     window.clearTimeout(ccalo.editor.editor.autoSaveTimeout_);
   }
   ccalo.editor.editor.autoSaveTimeout_ = window.setTimeout(function(){
     ccalo.editor.handleSaveContent_();
-  }, 1000);
+  }, 2000);
 };
 
 ccalo.editor.handleSaveContent_ = function(opt_e) {
   if (ccalo.editor.editor.autoSaveTimeout_) {
     window.clearTimeout(ccalo.editor.editor.autoSaveTimeout_);
   }
-  ccalo.editor.saveContentBtn_.value = 'Saving ...';
+
+  // We only have opt_e in the click scenario
+  if (ccalo.editor.autoUpdate == false && opt_e) {
+    ccalo.editor.updatePreview();
+  }
+
+  ccalo.editor.saveContentBtn_.value = ccalo.editor.Text.SAVING;
+
   goog.net.XhrIo.send(
     ccalo.editor.saveContentForm_.action,
     ccalo.editor.editor.saveCallback_,
@@ -88,6 +151,7 @@ ccalo.editor.handleSaveContent_ = function(opt_e) {
     goog.dom.forms.getFormDataString(ccalo.editor.saveContentForm_),
     ccalo.XHR_HEADER
   );
+
   if (opt_e) {
     opt_e.preventDefault();
   }
@@ -114,11 +178,6 @@ ccalo.editor.getSourceName = function () {
  */
 ccalo.editor.updatePreview = function () {
   var content = this.editor.getText();
-
-
-  // TODO(elsigh): Test if we're inside a script tag.
-
-  ccalo.editor.editor.saveContent_.value = content;
   this.preview.setContent(content);
 };
 
@@ -139,11 +198,12 @@ ccalo.editor.Preview.prototype.getDocument = function (element) {
 };
 
 ccalo.editor.Preview.prototype.setContent = function (content) {
-  window.console.log('content', content);
   var writer = this.getDocument();
   writer.open();
   writer.write(content);
   writer.close();
+  goog.events.listen(this.getDocument().body, 'keydown',
+      ccalo.editor.handleKeyDown_, false, ccalo.editor);
 };
 
 /**
@@ -159,19 +219,38 @@ ccalo.editor.Editor = function (element) {
   var aceMode = require('ace/mode/html').Mode;
   aceEditor.getSession().setMode(new aceMode());
 
-  aceEditor.getSession().on('change', function() {
-      ccalo.editor.updatePreview();
-  });
   document.getElementById('editor-ace').style.fontSize = '14px';
   document.getElementById('editor-ace').style.visibility = 'visible';
+
+  /*
+  canon.addCommand({
+    name: "replace",
+    bindKey: bindKey("Ctrl-R", "Command-Option-F"),
+    exec: function(env, args, request) {
+        var needle = prompt("Find:");
+        if (!needle)
+            return;
+        var replacement = prompt("Replacement:");
+        if (!replacement)
+            return;
+        env.editor.replace(replacement, {needle: needle});
+    }
+});
+    */
+
   this.ace_ = aceEditor;
 };
+
 
 ccalo.editor.Editor.prototype.saveCallback_ = function(e) {
   var xhr = e.currentTarget;
   if (xhr.isSuccess()) {
-    ccalo.editor.saveContentBtn_.value = 'Save';
-    ccalo.editor.saveContentBtn_.disabled = true;
+    if (ccalo.editor.autoUpdate) {
+      ccalo.editor.saveContentBtn_.value = ccalo.editor.Text.SAVE;
+      ccalo.editor.saveContentBtn_.disabled = true;
+    } else {
+      ccalo.editor.saveContentBtn_.value = ccalo.editor.Text.REFRESH;
+    }
 
     ccalo.editor.saveContentTime_.innerHTML = 'Last saved: ' +
         (new Date()).toString();
