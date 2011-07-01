@@ -33,7 +33,7 @@ ccalo.XHR_HEADER = {'X-Requested-With': 'XMLHttpRequest'};
  */
 ccalo.editor.Text = {
   SAVE: 'Save',
-  SAVING: 'Saving ...',
+  SAVING: 'Save',
   REFRESH: 'Refresh (Ctrl+R)'
 };
 
@@ -74,8 +74,8 @@ ccalo.editor.init = function () {
 
     goog.events.listen(ccalo.editor.saveContentTitle_, 'blur',
         ccalo.editor.handleSaveContent_, false, ccalo.editor);
-
   }
+
 
   ccalo.editor.dealWithContent_();
   ccalo.editor.updatePreview();  // always do it initially.
@@ -109,16 +109,22 @@ ccalo.editor.handleKeyDown_ = function(e) {
 ccalo.editor.dealWithContent_ = function() {
   var content = ccalo.editor.editor.getText();
   ccalo.editor.editor.saveContent_.value = content;
-  ccalo.editor.saveContentBtn_.disabled = false;
 
+  var newBtnText;
   // auto update if no scripts on page.
   if (content.indexOf('<script') == -1) {
-    ccalo.editor.saveContentBtn_.value = ccalo.editor.Text.SAVE;
+    newBtnText = ccalo.editor.Text.SAVE;
     ccalo.editor.autoUpdate = true;
     ccalo.editor.updatePreview();
   } else {
     ccalo.editor.autoUpdate = false;
-    ccalo.editor.saveContentBtn_.value = ccalo.editor.Text.REFRESH;
+    newBtnText = ccalo.editor.Text.REFRESH;
+  }
+
+  // There's no save button if someone needs to fork.
+  if (ccalo.editor.saveContentBtn_) {
+    ccalo.editor.saveContentBtn_.disabled = false;
+    ccalo.editor.saveContentBtn_.value = newBtnText;
   }
 };
 
@@ -256,12 +262,12 @@ ccalo.editor.Editor.prototype.saveCallback_ = function(e) {
         (new Date()).toString();
     ccalo.editor.saveContentTime_.style.setProperty('-webkit-transition',
         'background 0s ease-in');
-    ccalo.editor.saveContentTime_.style.background = '#999';
+    ccalo.editor.saveContentTime_.style.background = '#888';
     window.setTimeout(function() {
       ccalo.editor.saveContentTime_.style.setProperty('-webkit-transition',
-          'background 0.5s ease-in');
+          'background 0.3s ease-in');
       ccalo.editor.saveContentTime_.style.background = '';
-    }, 250);
+    }, 500);
 
   } else {
     alert('Crappity crap crap, saving is broken. Email ux-webdev@');
