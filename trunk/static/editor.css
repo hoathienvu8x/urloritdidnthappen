@@ -9,6 +9,25 @@ html {
   font-size: 0.8125em;
   line-height: 1.230769em; /* 16px */
 }
+/* custom scrollbars
+::-webkit-scrollbar {
+  width: 14px;
+  height: 14px;
+}
+::-webkit-scrollbar-button:start:decrement,
+::-webkit-scrollbar-button:end:increment  {
+  display: block;
+  background-color: transparent;
+}
+::-webkit-scrollbar-track-piece  {
+  background-color: transparent;
+  -webkit-border-radius: 6px;
+}
+::-webkit-scrollbar-thumb:vertical {
+  background-color: #666;
+  border: 1px solid #eee;
+  -webkit-border-radius: 6px;
+}*/
 
 body,
 form {
