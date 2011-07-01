@@ -193,6 +193,11 @@ a:hover {
 .mine-body #save-content-forkwarn {
   display: none;
 }
+#save-content-forkwarn {
+  background: lightyellow;
+  color: red;
+  padding: 1px 4px;
+}
 .mine-content {
   padding: 20px;
 }
