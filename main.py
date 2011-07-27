@@ -156,6 +156,7 @@ class EditorHandler(RequestHandler):
 
 
 class ForkHandler(RequestHandler):
+  @login_required
   def post(self):
     try:
       # 6 here is the len('/fork/')
@@ -187,6 +188,7 @@ class ForkHandler(RequestHandler):
 
 
 class SaveHandler(RequestHandler):
+  @login_required
   def post(self):
     try:
       # 6 here is the len('/save/')
@@ -242,6 +244,7 @@ class MineHandler(RequestHandler):
 
 
 class DeleteHandler(RequestHandler):
+  @login_required
   def post(self):
     try:
       # 8 here is the len('/delete/')
@@ -284,7 +287,6 @@ class CleanupHandler(RequestHandler):
 
 class RenderHandler(RequestHandler):
   """Renders the raw html straight away, sans editor."""
-  @login_required
   def get(self):
     try:
       # 8 here is the len('/render/')

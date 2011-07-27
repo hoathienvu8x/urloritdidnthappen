@@ -47,6 +47,7 @@ ccalo.editor.init = function () {
   var editorElement = goog.dom.getElement("editor-ace");
 
   ccalo.editor.preview = new ccalo.editor.Preview(previewElement);
+
   ccalo.editor.editor = new ccalo.editor.Editor(editorElement);
 
   ccalo.editor.editor.saveContent_ = document.getElementById('save-content');
@@ -216,7 +217,6 @@ ccalo.editor.Preview.prototype.setContent = function (content) {
  * An HTML editor.
  */
 ccalo.editor.Editor = function (element) {
-  element.setAttribute('class', 'editor-doc');
   var aceEditor = ace.edit('editor-ace');
   aceEditor.setTheme('ace/theme/eclipse');
   aceEditor.getSession().setTabSize(2);
