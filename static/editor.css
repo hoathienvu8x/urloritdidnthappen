@@ -59,7 +59,9 @@ a:hover {
   right: 0;
   top: 0;
 }
-
+.mine-body .editor-chrome {
+  position: static;
+}
 .editor-chrome-header {
   overflow: hidden;
   -webkit-box-flex: 0;
