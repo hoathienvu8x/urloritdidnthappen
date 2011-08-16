@@ -1,0 +1,11 @@
+Runs on Google App Engine SDK.
+
+First:
+
+cd static
+./compile_js.sh
+
+- wait -
+
+Then 
+/path/to/dev_appserver.py .
