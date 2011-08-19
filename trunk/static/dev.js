@@ -7875,6 +7875,11 @@ goog.dom.setFocusableTabIndex = function(element, enable) {
   if (enable) {
     element.tabIndex = 0;
   } else {
+    // Set tabIndex to -1 first, then remove it. This is a workaround for
+    // Safari (confirmed in version 4 on Windows). When removing the attribute
+    // without setting it to -1 first, the element remains keyboard focusable
+    // despite not having a tabIndex attribute anymore.
+    element.tabIndex = -1;
     element.removeAttribute('tabIndex'); // Must be camelCase!
   }
 };
@@ -11101,11 +11106,17 @@ goog.dom.selection.useSelectionProperties_ = function(el) {
  * entry points with this registry. Designed to be compiled out
  * if no instrumentation is requested.
  *
+ * Entry points may be registered before or after a call to
+ * goog.debug.entryPointRegistry.monitorAll. If an entry point is registered
+ * later, the existing monitor will instrument the new entry point.
+ *
  * @author nicksantos@google.com (Nick Santos)
  */
 
 goog.provide('goog.debug.EntryPointMonitor');
 goog.provide('goog.debug.entryPointRegistry');
+
+goog.require('goog.asserts');
 
 
 
@@ -11117,6 +11128,7 @@ goog.debug.EntryPointMonitor = function() {};
 
 /**
  * Instruments a function.
+ *
  * @param {!Function} fn A function to instrument.
  * @return {!Function} The instrumented function.
  */
@@ -11151,46 +11163,86 @@ goog.debug.entryPointRegistry.refList_ = [];
 
 
 /**
+ * Monitors that should wrap all the entry points.
+ * @type {!Array.<!goog.debug.EntryPointMonitor>}
+ * @private
+ */
+goog.debug.entryPointRegistry.monitors_ = [];
+
+
+/**
+ * Whether goog.debug.entryPointRegistry.monitorAll has ever been called.
+ * Checking this allows the compiler to optimize out the registrations.
+ * @type {boolean}
+ * @private
+ */
+goog.debug.entryPointRegistry.monitorsMayExist_ = false;
+
+
+/**
  * Register an entry point with this module.
- * @param {function(!Function)} callback A callback function.
- *     When a client requests instrumentation, this callback will be called
- *     with a trnasforming function. The callback is responsible for wrapping
- *     the relevant entry point with the transforming function.
+ *
+ * The entry point will be instrumented when a monitor is passed to
+ * goog.debug.entryPointRegistry.monitorAll. If this has already occurred, the
+ * entry point is instrumented immediately.
+ *
+ * @param {function(!Function)} callback A callback function which is called
+ *     with a transforming function to instrument the entry point. The callback
+ *     is responsible for wrapping the relevant entry point with the
+ *     transforming function.
  */
 goog.debug.entryPointRegistry.register = function(callback) {
   // Don't use push(), so that this can be compiled out.
   goog.debug.entryPointRegistry.refList_[
       goog.debug.entryPointRegistry.refList_.length] = callback;
+  // If no one calls monitorAll, this can be compiled out.
+  if (goog.debug.entryPointRegistry.monitorsMayExist_) {
+    var monitors = goog.debug.entryPointRegistry.monitors_;
+    for (var i = 0; i < monitors.length; i++) {
+      callback(goog.bind(monitors[i].wrap, monitors[i]));
+    }
+  }
 };
 
 
 /**
- * Monitor all registered entry points.
- * @param {goog.debug.EntryPointMonitor} monitor An entry point monitor.
+ * Configures a monitor to wrap all entry points.
+ *
+ * Entry points that have already been registered are immediately wrapped by
+ * the monitor. When an entry point is registered in the future, it will also
+ * be wrapped by the monitor when it is registered.
+ *
+ * @param {!goog.debug.EntryPointMonitor} monitor An entry point monitor.
  */
 goog.debug.entryPointRegistry.monitorAll = function(monitor) {
+  goog.debug.entryPointRegistry.monitorsMayExist_ = true;
   var transformer = goog.bind(monitor.wrap, monitor);
   for (var i = 0; i < goog.debug.entryPointRegistry.refList_.length; i++) {
     goog.debug.entryPointRegistry.refList_[i](transformer);
   }
+  goog.debug.entryPointRegistry.monitors_.push(monitor);
 };
 
 
 /**
- * Try to unmonitor all the registered entry points.
+ * Try to unmonitor all the entry points that have already been registered. If
+ * an entry point is registered in the future, it will not be wrapped by the
+ * monitor when it is registered. Note that this may fail if the entry points
+ * have additional wrapping.
  *
- * Note that this may fail if the entry points have additional wrapping.
- * See the comment on {@code EntryPointMonitor}'s {@code setInvertedMode}
- * method.
- *
- * @param {goog.debug.EntryPointMonitor} monitor The last monitor to wrap
+ * @param {!goog.debug.EntryPointMonitor} monitor The last monitor to wrap
  *     the entry points.
+ * @throws {Error} If the monitor is not the most recently configured monitor.
  */
 goog.debug.entryPointRegistry.unmonitorAllIfPossible = function(monitor) {
+  var monitors = goog.debug.entryPointRegistry.monitors_;
+  goog.asserts.assert(monitor == monitors[monitors.length - 1],
+      'Only the most recent monitor can be unwrapped.');
   var transformer = goog.bind(monitor.unwrap, monitor);
   for (var i = 0; i < goog.debug.entryPointRegistry.refList_.length; i++) {
     goog.debug.entryPointRegistry.refList_[i](transformer);
   }
+  monitors.length--;
 };
 // Copyright 2008 The Closure Library Authors. All Rights Reserved.
 //
@@ -15864,6 +15916,7 @@ goog.provide('goog.debug');
 goog.require('goog.array');
 goog.require('goog.string');
 goog.require('goog.structs.Set');
+goog.require('goog.userAgent');
 
 
 /**
@@ -15877,6 +15930,9 @@ goog.require('goog.structs.Set');
 goog.debug.catchErrors = function(logFunc, opt_cancel, opt_target) {
   var target = opt_target || goog.global;
   var oldErrorHandler = target.onerror;
+  // Chrome interprets onerror return value backwards (http://crbug.com/92062).
+  // Safari doesn't support onerror at all.
+  var retVal = goog.userAgent.WEBKIT ? !opt_cancel : !!opt_cancel;
   target.onerror = function(message, url, line) {
     if (oldErrorHandler) {
       oldErrorHandler(message, url, line);
@@ -15886,7 +15942,7 @@ goog.debug.catchErrors = function(logFunc, opt_cancel, opt_target) {
       fileName: url,
       line: line
     });
-    return Boolean(opt_cancel);
+    return retVal;
   };
 };
 
@@ -20245,7 +20301,7 @@ goog.net.XhrIo.prototype.send = function(url, opt_method, opt_content,
  */
 goog.net.XhrIo.prototype.createXhr = function() {
   return this.xmlHttpFactory_ ?
-      this.xmlHttpFactory_.createInstance() : new goog.net.XmlHttp();
+      this.xmlHttpFactory_.createInstance() : goog.net.XmlHttp();
 };
 
 
@@ -20539,6 +20595,8 @@ goog.net.XhrIo.prototype.isSuccess = function() {
       return !this.isLastUriEffectiveSchemeHttp_();
 
     case goog.net.HttpStatus.OK:
+    case goog.net.HttpStatus.CREATED:
+    case goog.net.HttpStatus.ACCEPTED:
     case goog.net.HttpStatus.NO_CONTENT:
     case goog.net.HttpStatus.NOT_MODIFIED:
     case goog.net.HttpStatus.QUIRK_IE_NO_CONTENT:
@@ -23217,13 +23275,19 @@ goog.style.getFloat = function(el) {
  * @return {number} The scroll bar width in px.
  */
 goog.style.getScrollbarWidth = function() {
-  // Add a div outside of the viewport.
-  var mockElement = goog.dom.createElement('div');
-  mockElement.style.cssText = 'visibility:hidden;overflow:scroll;' +
+  // Add two hidden divs.  The child div is larger than the parent and
+  // forces scrollbars to appear on it.
+  // Using overflow:scroll does not work consistently with scrollbars that
+  // are styled with ::-webkit-scrollbar.
+  var outerDiv = goog.dom.createElement('div');
+  outerDiv.style.cssText = 'visiblity:hidden;overflow:auto;' +
       'position:absolute;top:0;width:100px;height:100px';
-  goog.dom.appendChild(goog.dom.getDocument().body, mockElement);
-  var width = mockElement.offsetWidth - mockElement.clientWidth;
-  goog.dom.removeNode(mockElement);
+  var innerDiv = goog.dom.createElement('div');
+  goog.style.setSize(innerDiv, '200px', '200px');
+  outerDiv.appendChild(innerDiv);
+  goog.dom.appendChild(goog.dom.getDocument().body, outerDiv);
+  var width = outerDiv.offsetWidth - outerDiv.clientWidth;
+  goog.dom.removeNode(outerDiv);
   return width;
 };
 // Copyright 2006 The Closure Library Authors. All Rights Reserved.

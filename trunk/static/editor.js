@@ -34,7 +34,7 @@ ccalo.XHR_HEADER = {'X-Requested-With': 'XMLHttpRequest'};
 ccalo.editor.Text = {
   SAVE: 'Save',
   SAVING: 'Save',
-  REFRESH: 'Refresh (Ctrl+R)'
+  REFRESH: 'Refresh'
 };
 
 
@@ -209,8 +209,6 @@ ccalo.editor.Preview.prototype.setContent = function (content) {
   writer.open();
   writer.write(content);
   writer.close();
-  goog.events.listen(this.getDocument().body, 'keydown',
-      ccalo.editor.handleKeyDown_, false, ccalo.editor);
 };
 
 /**
@@ -225,7 +223,6 @@ ccalo.editor.Editor = function (element) {
   var aceMode = require('ace/mode/html').Mode;
   aceEditor.getSession().setMode(new aceMode());
 
-  document.getElementById('editor-ace').style.fontSize = '14px';
   document.getElementById('editor-ace').style.visibility = 'visible';
 
   /*
